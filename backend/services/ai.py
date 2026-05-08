@@ -155,6 +155,17 @@ def _build_prompt(
         region = user_profile.get("region", "")
         user_ctx = f"\n[사업자 정보]\n- 업종: {btype}\n- 지역: {region} 상권\n※ 위 업종과 지역에 특화된 조언을 해줄 것. 예) 카페라면 디저트 메뉴 마진·좌석 회전율, 서울이면 상권 경쟁 강도 언급 등."
 
+    # 현재 월/계절 컨텍스트 (계절성 메뉴 오판 방지)
+    from datetime import date as _date
+    _m = _date.today().month
+    _season = (
+        "봄 (3~5월, 나들이·야외 수요 증가)" if _m in (3, 4, 5) else
+        "여름 (6~8월, 냉음료·빙수·아이스 수요 급증)" if _m in (6, 7, 8) else
+        "가을 (9~11월, 따뜻한 음료·구황작물 수요)" if _m in (9, 10, 11) else
+        "겨울 (12~2월, 붕어빵·호떡·핫초코 등 온열 수요)"
+    )
+    season_ctx = f"\n[현재 시점] {_date.today().strftime('%Y년 %m월')} — {_season}\n※ 계절성 메뉴(빙수·팥빙수·아이스·딸기 등)는 현재 계절 수요 흐름을 반드시 반영할 것."
+
     # 최근 4주 요약만 포함 (raw 전체 데이터 제거 → 토큰 절감)
     recent_summary = ", ".join(
         f"{w['period']}: {w['ratio']}" for w in weeks[-4:]
@@ -169,9 +180,9 @@ def _build_prompt(
 평균={lifecycle.get('avgAll')} | 최근4주={lifecycle.get('avgRecent')} | 이전4주={lifecycle.get('avgPrev')} | 변화={round(lifecycle.get('avgRecent',0)-lifecycle.get('avgPrev',0),1)}pt
 최고점={lifecycle.get('peakRatio')} → 현재={lifecycle.get('currentRatio')} (정점대비{round(lifecycle.get('peakDecay',0)*100)}%↓) | 모멘텀={lifecycle.get('momentum')} | 변동성={lifecycle.get('volatility')}
 변곡점={lifecycle.get('inflectionWeek')}주차 | EXIT={lifecycle.get('exitWeek')}주 후 | 4주예측={forecast_str}
-최근4주실측: {recent_summary}{shopping_str}{signal_str}{divergence_hint}
+최근4주실측: {recent_summary}{shopping_str}{signal_str}{divergence_hint}{season_ctx}
 {user_ctx}
-위 데이터로 JSON만 응답. dataInsight는 수치 근거 포함, marketContext는 신호 불일치 여부, alternatives는 fading/stop 시 필수.""".strip()
+위 데이터로 JSON만 응답. dataInsight는 수치 근거 포함, marketContext는 신호 불일치 여부와 계절성 여부, alternatives는 fading/stop 시 필수.""".strip()
 
 
 # ─── 응답 파싱 ───────────────────────────────────────────────────────────────
