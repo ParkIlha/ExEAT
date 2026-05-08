@@ -15,20 +15,33 @@ const NAV = [
 
 // ─── header ───────────────────────────────────────────────────────────────────
 
+const DEMO_KEYWORDS = ['우베', '흑임자라떼', '크로플', '마라탕', '치킨']
+
 function Header() {
   const [serverOk, setServerOk] = useState<boolean | null>(null)
 
   useEffect(() => {
     fetch('/api/health')
       .then((r) => r.json())
-      .then((j: { ok: boolean }) => setServerOk(j.ok))
+      .then((j: { ok: boolean }) => {
+        setServerOk(j.ok)
+        if (j.ok) {
+          // 서버 연결 확인 후 데모 키워드 사전 캐싱 (백그라운드)
+          fetch('/api/warm', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ keywords: DEMO_KEYWORDS }),
+          }).catch(() => {})
+        }
+      })
       .catch(() => setServerOk(false))
   }, [])
 
   return (
-    <header className="sticky top-0 z-20 border-b border-border/60 bg-background/70 backdrop-blur-md">
+    <header className="sticky top-0 z-20 border-b border-border/40 acrylic" style={{ boxShadow: 'var(--shadow-4)' }}>
       <div className="max-w-3xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
-        <NavLink to="/" className="flex items-baseline gap-2 shrink-0">
+        <NavLink to="/" className="flex items-center gap-2 shrink-0">
+          <img src="/logo.png" alt="ExEAT" className="w-7 h-7 object-contain" />
           <span className="font-bold text-base tracking-tight">ExEAT</span>
           <span className="text-[10px] text-muted-foreground hidden sm:block">외식 트렌드 EXIT 진단</span>
         </NavLink>

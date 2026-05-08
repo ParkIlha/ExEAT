@@ -70,7 +70,7 @@ export default function TrendingSection() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, delay: i * 0.06 }}
                 whileHover={{ y: -2 }}
-                className="bg-card border border-border rounded-2xl p-4 text-left hover:border-foreground/20 transition-colors flex flex-col gap-2"
+                className="fluent-card rounded-2xl p-4 text-left flex flex-col gap-2"
               >
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2 min-w-0">

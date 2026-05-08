@@ -1,14 +1,15 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Skeleton } from '@/components/ui/skeleton'
+import { Separator } from '@/components/ui/separator'
 import TrendChart from '@/components/TrendChart'
-import RegionPanel from '@/components/RegionPanel'
+import RecommendedRegions from '@/components/RecommendedRegions'
 import CountUp from '@/components/CountUp'
-import { useAnalysis, type TrendResult, type Verdict } from '@/store/analysis'
+import ROICard from '@/components/ROICard'
+import { useAnalysis, type TrendResult, type Verdict, type DivergenceType } from '@/store/analysis'
 
 const VERDICT_CONFIG: Record<Verdict, {
   label: string; sub: string; desc: string; color: string; bg: string;
@@ -46,16 +47,131 @@ const AI_PROVIDER_META: Record<string, { label: string; color: string }> = {
 }
 
 const ITEM_TYPE_META: Record<string, { label: string; color: string; desc: string }> = {
-  trending: { label: '🔥 폭발 상승',  color: 'var(--color-stop)', desc: '요즘 검색이 가속 중인 트렌딩 메뉴' },
-  growing:  { label: '↗ 점진 성장',   color: 'var(--color-go)',   desc: '점진적으로 우상향 중' },
-  classic:  { label: '★ 클래식',     color: 'var(--color-go)',   desc: '오래 안정적, 충성 수요 보유' },
-  seasonal: { label: '◇ 계절성',     color: 'var(--color-wait)', desc: '시기에 따라 변동이 큼' },
-  fading:   { label: '↘ 한물감',     color: 'var(--color-stop)', desc: '정점 지나고 하락 단계' },
-  niche:    { label: '◦ 틈새',       color: '#888',              desc: '검색량 작지만 안정적' },
-  stable:   { label: '— 정체',       color: '#888',              desc: '큰 방향성 없음' },
+  trending:          { label: '🔥 폭발 상승',     color: 'var(--color-stop)', desc: '요즘 검색이 가속 중인 트렌딩 메뉴' },
+  growing:           { label: '↗ 점진 성장',      color: 'var(--color-go)',   desc: '점진적으로 우상향 중' },
+  classic:           { label: '★ 클래식',        color: 'var(--color-go)',   desc: '오래 안정적, 충성 수요 보유' },
+  seasonal:          { label: '◇ 계절성',        color: 'var(--color-wait)', desc: '시기에 따라 변동이 큼' },
+  fading:            { label: '↘ 한물감',        color: 'var(--color-stop)', desc: '정점 지나고 하락 단계' },
+  niche:             { label: '◦ 틈새',          color: '#888',              desc: '검색량 작지만 안정적' },
+  stable:            { label: '— 정체',          color: '#888',              desc: '큰 방향성 없음' },
+  steady_saturated:  { label: '⚡ 스테디·포화',   color: '#7c3aed',           desc: '치킨·커피 수준 — 시장 포화, 경쟁 매우 치열' },
+  steady_safe:       { label: '🟢 스테디·안정',   color: 'var(--color-go)',   desc: '안정 수요 확보, 차별화 여지 있는 스테디' },
+  steady_emerging:   { label: '🌱 스테디·안착',   color: '#0891b2',           desc: '유행 후 자리잡은 메뉴 (베이글·크로플 등)' },
 }
 
 // ─── section wrapper ─────────────────────────────────────────────────────────
+
+// ─── 분석중 로딩 화면 ─────────────────────────────────────────────────────────
+
+const LOADING_STEPS = [
+  { label: '네이버 DataLab 데이터 수집 중', sub: '12주 검색량 + 쇼핑 클릭 불러오는 중...', duration: 2000 },
+  { label: '블로그·뉴스·구글 신호 분석 중', sub: 'UGC 버즈 · 미디어 노출 · 글로벌 트렌드 교차 중...', duration: 2500 },
+  { label: '수명주기 & 위험도 계산 중', sub: 'Prophet 예측 · 변곡점 · 위험도 산출 중...', duration: 2000 },
+  { label: 'AI가 진단 리포트 작성 중', sub: 'Gemini가 데이터 해석 + 액션 플랜 생성 중...', duration: 0 },
+]
+
+function AnalyzingScreen({ keyword }: { keyword: string }) {
+  const [stepIdx, setStepIdx] = useState(0)
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    function advance(idx: number) {
+      const step = LOADING_STEPS[idx]
+      if (!step || step.duration === 0) return
+      timerRef.current = setTimeout(() => {
+        setStepIdx((prev) => {
+          const next = Math.min(prev + 1, LOADING_STEPS.length - 1)
+          advance(next)
+          return next
+        })
+      }, step.duration)
+    }
+    advance(0)
+    return () => { if (timerRef.current) clearTimeout(timerRef.current) }
+  }, [])
+
+  const step = LOADING_STEPS[stepIdx]
+
+  return (
+    <motion.div
+      key="analyzing"
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0 }}
+      className="flex flex-col items-center justify-center py-24 gap-8"
+    >
+      {/* 로고 + 펄스 */}
+      <div className="relative">
+        <motion.div
+          animate={{ scale: [1, 1.06, 1] }}
+          transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+        >
+          <img src="/logo.png" alt="ExEAT" className="w-16 h-16 object-contain" />
+        </motion.div>
+        <motion.div
+          className="absolute inset-0 rounded-full"
+          style={{ background: 'radial-gradient(circle, rgba(45,122,79,0.15) 0%, transparent 70%)' }}
+          animate={{ scale: [1, 1.8, 1], opacity: [0.6, 0, 0.6] }}
+          transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+        />
+      </div>
+
+      {/* 키워드 */}
+      <div className="text-center">
+        <p className="text-xs text-muted-foreground mb-1">분석 중</p>
+        <p className="text-xl font-bold tracking-tight">"{keyword}"</p>
+      </div>
+
+      {/* 스텝 */}
+      <div className="w-full max-w-xs flex flex-col gap-2.5">
+        {LOADING_STEPS.map((s, i) => {
+          const done    = i < stepIdx
+          const active  = i === stepIdx
+          const pending = i > stepIdx
+          return (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: pending ? 0.3 : 1, x: 0 }}
+              transition={{ delay: i * 0.1, duration: 0.4 }}
+              className="flex items-start gap-3"
+            >
+              <div className="mt-0.5 w-4 h-4 rounded-full flex items-center justify-center shrink-0">
+                {done ? (
+                  <motion.span
+                    initial={{ scale: 0 }} animate={{ scale: 1 }}
+                    className="text-[var(--color-go)] text-sm"
+                  >✓</motion.span>
+                ) : active ? (
+                  <motion.div
+                    className="w-3 h-3 rounded-full border-2 border-foreground border-t-transparent"
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }}
+                  />
+                ) : (
+                  <div className="w-2 h-2 rounded-full bg-muted-foreground/30" />
+                )}
+              </div>
+              <div>
+                <p className={`text-xs font-medium ${active ? 'text-foreground' : 'text-muted-foreground'}`}>
+                  {s.label}
+                </p>
+                {active && (
+                  <motion.p
+                    initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                    className="text-[10px] text-muted-foreground mt-0.5"
+                  >
+                    {s.sub}
+                  </motion.p>
+                )}
+              </div>
+            </motion.div>
+          )
+        })}
+      </div>
+    </motion.div>
+  )
+}
 
 function Section({ index, children }: { index: number; children: React.ReactNode }) {
   return (
@@ -75,7 +191,7 @@ function Section({ index, children }: { index: number; children: React.ReactNode
 export default function Result() {
   const { keyword = '' } = useParams<{ keyword: string }>()
   const navigate = useNavigate()
-  const { getCached, setCached } = useAnalysis()
+  const { getCached, setCached, userProfile } = useAnalysis()
 
   const decoded = decodeURIComponent(keyword)
   const cached  = getCached(decoded)
@@ -93,7 +209,10 @@ export default function Result() {
     fetch('/api/ask', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ keyword: decoded }),
+      body: JSON.stringify({
+        keyword: decoded,
+        userProfile: userProfile ?? undefined,
+      }),
     })
       .then(async (r) => {
         const json = await r.json()
@@ -111,11 +230,18 @@ export default function Result() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [keyword])
 
-  return (
-    <div className="max-w-3xl mx-auto w-full px-4 sm:px-6 py-6 sm:py-10 flex flex-col gap-5 sm:gap-6">
+  const [activeTab, setActiveTab] = useState<'data' | 'ai' | 'plan'>('data')
 
-      {/* 헤더 */}
-      <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+  const TABS = [
+    { id: 'data' as const, label: '📊 데이터', },
+    { id: 'ai'   as const, label: '🤖 AI 분석', },
+    { id: 'plan' as const, label: '📋 액션 플랜', },
+  ]
+
+  return (
+    <div className="w-full px-4 sm:px-6 py-6">
+      {/* 상단 브레드크럼 */}
+      <div className="max-w-6xl mx-auto flex items-center gap-2 mb-6">
         <button
           type="button"
           onClick={() => navigate('/')}
@@ -123,58 +249,90 @@ export default function Result() {
         >
           ← 홈
         </button>
-        <span className="text-muted-foreground text-sm">·</span>
+        <span className="text-muted-foreground text-sm">/</span>
         <span className="font-semibold text-sm">{decoded}</span>
-        {data && !loading && (
-          <div className="flex items-center gap-1.5 ml-auto flex-wrap">
-            {data.itemType && ITEM_TYPE_META[data.itemType] && (
-              <Badge
-                variant="outline"
-                className="text-[10px]"
-                style={{
-                  color: ITEM_TYPE_META[data.itemType].color,
-                  borderColor: ITEM_TYPE_META[data.itemType].color,
-                }}
-              >
-                {ITEM_TYPE_META[data.itemType].label}
-              </Badge>
-            )}
-            <Badge variant="outline" className="font-mono text-[10px]">
-              {STAGE_LABEL[data.stage]}
-            </Badge>
-          </div>
-        )}
       </div>
 
       <AnimatePresence mode="wait">
         {loading ? (
-          <motion.div
-            key="loading"
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="flex flex-col gap-5"
-          >
-            <Skeleton className="h-64 w-full rounded-3xl" />
-            <Skeleton className="h-32 w-full rounded-2xl" />
-            <Skeleton className="h-72 w-full rounded-2xl" />
-            <Skeleton className="h-64 w-full rounded-2xl" />
-          </motion.div>
+          <AnalyzingScreen keyword={decoded} />
         ) : data ? (
           <motion.div
             key="result"
             initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-            className="flex flex-col gap-5 sm:gap-6"
+            className="max-w-6xl mx-auto"
           >
-            <VerdictHero data={data} />
-            <Section index={1}><ItemTypeCard data={data} /></Section>
-            <Section index={2}><RiskGauge data={data} /></Section>
-            <Section index={3}><MetricsRow data={data} /></Section>
-            <Section index={4}><DataInsightCard data={data} /></Section>
-            <Section index={5}><MarketContextCard data={data} /></Section>
-            <Section index={6}><ActionPlanCard data={data} /></Section>
-            <Section index={7}><WorstCaseCard data={data} /></Section>
-            <Section index={8}><TrendBlock data={data} /></Section>
-            <Section index={9}><RegionBlock stage={data.stage} /></Section>
-            <Section index={10}><SimulatorCTA exitWeek={data.exitWeek} navigate={navigate} /></Section>
+            {/* ─── 2단 레이아웃 ─── */}
+            <div className="flex flex-col lg:flex-row gap-5 lg:gap-6 lg:items-start">
+
+              {/* ══ 좌측: 판정 패널 (데스크탑 sticky) ══ */}
+              <div className="w-full lg:w-80 xl:w-88 shrink-0 lg:sticky lg:top-20">
+                <VerdictPanel data={data} />
+              </div>
+
+              {/* ══ 우측: 탭 콘텐츠 ══ */}
+              <div className="flex-1 min-w-0 flex flex-col gap-4">
+                {/* 탭 네비게이션 */}
+                <div className="flex gap-1 p-1 fluent-card rounded-xl">
+                  {TABS.map((tab) => (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => setActiveTab(tab.id)}
+                      className={`flex-1 py-2 px-3 rounded-lg text-xs font-medium transition-all ${
+                        activeTab === tab.id
+                          ? 'bg-foreground text-background shadow-sm'
+                          : 'text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* 탭 콘텐츠 */}
+                <AnimatePresence mode="wait">
+                  {activeTab === 'data' && (
+                    <motion.div
+                      key="data"
+                      initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                      className="flex flex-col gap-4"
+                    >
+                      <Section index={0}><SignalCard data={data} /></Section>
+                      <Section index={1}><TrendBlock data={data} /></Section>
+                      <Section index={2}><MetricsRow data={data} /></Section>
+                      <Section index={3}><RegionBlock stage={data.stage} /></Section>
+                    </motion.div>
+                  )}
+                  {activeTab === 'ai' && (
+                    <motion.div
+                      key="ai"
+                      initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                      className="flex flex-col gap-4"
+                    >
+                      <Section index={0}><ItemTypeCard data={data} /></Section>
+                      {data.saturationScore != null && <Section index={1}><SaturationCard data={data} /></Section>}
+                      <Section index={2}><DataInsightCard data={data} /></Section>
+                      <Section index={3}><MarketContextCard data={data} /></Section>
+                      <Section index={4}><RiskGauge data={data} /></Section>
+                    </motion.div>
+                  )}
+                  {activeTab === 'plan' && (
+                    <motion.div
+                      key="plan"
+                      initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                      className="flex flex-col gap-4"
+                    >
+                      <Section index={0}>
+                        <ROICard exitWeek={data.exitWeek} verdict={data.verdict} keyword={data.keyword} />
+                      </Section>
+                      <Section index={1}><ActionPlanCard data={data} /></Section>
+                      <Section index={2}><WorstCaseCard data={data} /></Section>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </div>
           </motion.div>
         ) : null}
       </AnimatePresence>
@@ -182,7 +340,163 @@ export default function Result() {
   )
 }
 
-// ─── 1. Verdict Hero ─────────────────────────────────────────────────────────
+// ─── 0. Verdict Panel (좌측 고정) ────────────────────────────────────────────
+
+function VerdictPanel({ data }: { data: TrendResult }) {
+  const v = VERDICT_CONFIG[data.verdict]
+  const itemMeta = data.itemType ? ITEM_TYPE_META[data.itemType] : null
+  const aiMeta = AI_PROVIDER_META[data.aiProvider ?? 'unknown']
+
+  return (
+    <div className="flex flex-col gap-3">
+      {/* 메인 판정 카드 */}
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+        className="relative rounded-2xl p-5 overflow-hidden border"
+        style={{
+          backgroundColor: v.bg,
+          borderColor: v.color + '55',
+          boxShadow: data.verdict === 'GO' ? 'var(--glow-go)' : data.verdict === 'STOP' ? 'var(--glow-stop)' : 'var(--glow-wait)',
+        }}
+      >
+        <div className="absolute inset-0 pointer-events-none" style={{ background: `radial-gradient(ellipse at 0% 0%, ${v.color}1a 0%, transparent 70%)` }} />
+        <div className="absolute -right-3 -top-2 text-[90px] font-black leading-none opacity-[0.07] pointer-events-none select-none font-mono" style={{ color: v.color }}>{v.label}</div>
+
+        <div className="relative flex flex-col gap-2">
+          <span className="text-[10px] font-medium uppercase tracking-widest" style={{ color: v.color }}>진단 결과</span>
+          <div className="font-mono font-black text-4xl tracking-tight" style={{ color: v.color }}>{v.label}</div>
+          <p className="font-semibold text-sm">{v.sub}</p>
+          <p className="text-xs text-muted-foreground leading-relaxed">{data.summary || v.desc}</p>
+
+          {data.exitWeek && (
+            <div
+              className="mt-1 inline-flex items-center gap-1.5 self-start text-[11px] font-mono rounded-lg px-2.5 py-1.5 border"
+              style={{ borderColor: v.color + '60', color: v.color, background: v.color + '0e' }}
+            >
+              ⚠ <strong><CountUp to={data.exitWeek} duration={900} /></strong>주 후 50% 이하
+            </div>
+          )}
+        </div>
+      </motion.div>
+
+      {/* 빠른 지표 */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.15 }}
+        className="fluent-card rounded-2xl p-4 flex flex-col gap-3"
+      >
+        <div className="grid grid-cols-2 gap-3">
+          <div className="flex flex-col gap-0.5">
+            <span className="text-[10px] text-muted-foreground">위험도</span>
+            <span className="font-mono font-bold text-lg"><CountUp to={data.riskScore ?? 0} /><span className="text-xs font-normal text-muted-foreground">/100</span></span>
+          </div>
+          <div className="flex flex-col gap-0.5">
+            <span className="text-[10px] text-muted-foreground">단계</span>
+            <span className="font-mono font-bold text-sm">{STAGE_LABEL[data.stage]}</span>
+          </div>
+          <div className="flex flex-col gap-0.5">
+            <span className="text-[10px] text-muted-foreground">평균 검색량</span>
+            <span className="font-mono font-bold text-lg"><CountUp to={data.avgAll ?? 0} decimals={1} /></span>
+          </div>
+          <div className="flex flex-col gap-0.5">
+            <span className="text-[10px] text-muted-foreground">모멘텀</span>
+            <span className={`font-mono font-bold text-sm ${(data.momentum ?? 0) > 0 ? 'text-[var(--color-go)]' : 'text-[var(--color-stop)]'}`}>
+              {(data.momentum ?? 0) > 0 ? '+' : ''}{data.momentum ?? 0}
+            </span>
+          </div>
+        </div>
+
+        <Separator />
+
+        <div className="flex flex-col gap-1.5">
+          {itemMeta && (
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] text-muted-foreground">메뉴 유형</span>
+              <span className="text-[11px] font-semibold" style={{ color: itemMeta.color }}>{itemMeta.label}</span>
+            </div>
+          )}
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] text-muted-foreground">AI 제공</span>
+            <span className="text-[11px] font-mono" style={{ color: aiMeta.color }}>{aiMeta.label}</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] text-muted-foreground">분석 기간</span>
+            <span className="text-[11px] font-mono text-muted-foreground">{data.startDate?.slice(2)} ~</span>
+          </div>
+        </div>
+      </motion.div>
+    </div>
+  )
+}
+
+// ─── 스테디 포화도 카드 ──────────────────────────────────────────────────────
+
+function SaturationCard({ data }: { data: TrendResult }) {
+  const score = data.saturationScore ?? 0
+  const difficulty = data.differentiationDifficulty ?? '보통'
+  const entryVerdict = data.entryVerdict ?? 'POSSIBLE'
+
+  const entryColor = entryVerdict === 'CAUTION' ? 'var(--color-stop)'
+    : entryVerdict === 'VIABLE' ? 'var(--color-go)'
+    : 'var(--color-wait)'
+
+  const entryLabel = entryVerdict === 'CAUTION' ? '진입 주의' : entryVerdict === 'VIABLE' ? '진입 가능' : '차별화 필요'
+
+  const isSteady = data.itemType?.startsWith('steady')
+  const typeDesc = data.itemType === 'steady_saturated'
+    ? '치킨·커피처럼 이미 포화된 시장입니다. 브랜딩·위치·가격이 핵심 무기입니다.'
+    : data.itemType === 'steady_emerging'
+    ? '유행 이후 안착 단계입니다. 시그니처화로 고정 고객층을 확보할 수 있습니다.'
+    : '안정적 수요가 있는 스테디 메뉴입니다. 차별화 포인트 1개로 충분히 경쟁 가능합니다.'
+
+  return (
+    <div className="fluent-card rounded-2xl p-5">
+      <div className="flex items-start justify-between mb-4">
+        <div>
+          <h3 className="font-semibold text-sm mb-0.5">스테디 시장 분석</h3>
+          <p className="text-[11px] text-muted-foreground">포화도 · 경쟁 강도 · 진입 전략</p>
+        </div>
+        <div
+          className="px-2.5 py-1 rounded-full text-[11px] font-semibold"
+          style={{ backgroundColor: entryColor + '18', color: entryColor }}
+        >
+          {entryLabel}
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-3 mb-4">
+        <div>
+          <div className="flex justify-between text-xs mb-1.5">
+            <span className="text-muted-foreground">시장 포화도</span>
+            <span className="font-mono font-bold"><CountUp to={score} /><span className="text-muted-foreground">/100</span></span>
+          </div>
+          <div className="h-2 rounded-full bg-muted overflow-hidden">
+            <motion.div
+              className="h-full rounded-full"
+              style={{ background: score >= 70 ? 'var(--color-stop)' : score >= 45 ? 'var(--color-wait)' : 'var(--color-go)' }}
+              initial={{ width: 0 }}
+              animate={{ width: `${score}%` }}
+              transition={{ duration: 1, ease: 'easeOut' }}
+            />
+          </div>
+        </div>
+
+        <div className="flex justify-between text-xs">
+          <span className="text-muted-foreground">차별화 난이도</span>
+          <span className="font-semibold">{difficulty}</span>
+        </div>
+      </div>
+
+      <p className="text-xs text-muted-foreground leading-relaxed border-t border-border pt-3">
+        {typeDesc}
+      </p>
+    </div>
+  )
+}
+
+// ─── 1. Verdict Hero (모바일용 유지) ─────────────────────────────────────────
 
 function VerdictHero({ data }: { data: TrendResult }) {
   const v = VERDICT_CONFIG[data.verdict]
@@ -193,8 +507,19 @@ function VerdictHero({ data }: { data: TrendResult }) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
       className="relative rounded-3xl p-6 sm:p-8 overflow-hidden border"
-      style={{ backgroundColor: v.bg, borderColor: v.color }}
+      style={{
+        backgroundColor: v.bg,
+        borderColor: v.color + '55',
+        boxShadow: data.verdict === 'GO' ? 'var(--glow-go)' : data.verdict === 'STOP' ? 'var(--glow-stop)' : 'var(--glow-wait)',
+      }}
     >
+      {/* Fluent 상단 광원 효과 */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: `radial-gradient(ellipse at 20% 0%, ${v.color}22 0%, transparent 60%)`,
+        }}
+      />
       <div
         className="absolute -right-6 -top-2 text-[140px] sm:text-[180px] font-black leading-none opacity-[0.06] pointer-events-none select-none font-mono"
         style={{ color: v.color }}
@@ -254,7 +579,7 @@ function RiskGauge({ data }: { data: TrendResult }) {
     '낮음'
 
   return (
-    <div className="bg-card border border-border rounded-2xl p-5">
+    <div className="fluent-card rounded-2xl p-5">
       <div className="flex items-baseline justify-between mb-3 flex-wrap gap-2">
         <div className="flex items-center gap-2">
           <span className="text-[11px] font-medium uppercase tracking-widest text-muted-foreground">
@@ -314,7 +639,7 @@ function MetricsRow({ data }: { data: TrendResult }) {
   return (
     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
       {items.map((m) => (
-        <div key={m.label} className="bg-card border border-border rounded-2xl p-4 flex flex-col gap-1.5">
+        <div key={m.label} className="fluent-card rounded-2xl p-4 flex flex-col gap-1.5">
           <span className="text-[11px] text-muted-foreground">{m.label}</span>
           {m.placeholder ? (
             <span className="font-mono font-bold text-2xl text-muted-foreground">{m.placeholder}</span>
@@ -364,7 +689,7 @@ function DataInsightCard({ data }: { data: TrendResult }) {
   const provider = data.aiProvider ?? 'unknown'
   const meta = AI_PROVIDER_META[provider]
   return (
-    <div className="bg-card border border-border rounded-2xl p-5">
+    <div className="fluent-card rounded-2xl p-5">
       <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
         <div className="flex items-center gap-2">
           <span className="text-base">📊</span>
@@ -417,7 +742,7 @@ function ActionPlanCard({ data }: { data: TrendResult }) {
   if (!sections.length) return null
 
   return (
-    <div className="bg-card border border-border rounded-2xl p-5">
+    <div className="fluent-card rounded-2xl p-5">
       <div className="flex items-center gap-2 mb-4">
         <span className="text-base">🎯</span>
         <span className="text-[11px] font-medium uppercase tracking-widest text-muted-foreground">
@@ -488,13 +813,123 @@ function WorstCaseCard({ data }: { data: TrendResult }) {
   )
 }
 
-// ─── 7. Trend ────────────────────────────────────────────────────────────────
+// ─── 7. Signal Card ──────────────────────────────────────────────────────────
+
+const DIVERGENCE_CONFIG: Record<DivergenceType, { label: string; desc: string; color: string; icon: string }> = {
+  bubble:       { label: '거품 경보', desc: '검색 관심도는 높지만 실구매 시그널이 약합니다. 단순 유행일 가능성이 있습니다.', color: '#ef4444', icon: '⚠️' },
+  confirmed:    { label: '실수요 확인', desc: '검색량·쇼핑클릭·블로그 버즈가 모두 일치합니다. 실제 소비가 뒷받침된 트렌드입니다.', color: 'var(--color-go)', icon: '✅' },
+  loyal:        { label: '충성층 존재', desc: '검색량은 줄었지만 블로그 콘텐츠가 활발합니다. 고정 팬층이 있는 메뉴입니다.', color: 'var(--color-wait)', icon: '💛' },
+  media_driven: { label: '미디어 주도', desc: '뉴스 노출은 많지만 UGC가 적습니다. 미디어 과대 포장일 수 있습니다.', color: '#f59e0b', icon: '📰' },
+  neutral:      { label: '신호 중립', desc: '신호 간 뚜렷한 불일치 없음. 종합 판정을 참고하세요.', color: '#888', icon: '➖' },
+}
+
+function SignalBar({ label, level, count, maxCount, color }: {
+  label: string; level: 'high' | 'medium' | 'low' | null; count?: number; maxCount?: number; color: string
+}) {
+  const pct = maxCount && count ? Math.min(100, Math.round(Math.log10(count + 1) / Math.log10(maxCount + 1) * 100)) : null
+  const levelLabel = level === 'high' ? '높음' : level === 'medium' ? '중간' : level === 'low' ? '낮음' : '—'
+  const barPct = level === 'high' ? 90 : level === 'medium' ? 55 : level === 'low' ? 20 : 0
+
+  return (
+    <div className="flex flex-col gap-1">
+      <div className="flex justify-between items-center text-xs">
+        <span className="text-muted-foreground">{label}</span>
+        <span className="font-mono font-medium" style={{ color }}>
+          {count != null ? count.toLocaleString() + '건' : levelLabel}
+        </span>
+      </div>
+      <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+        <motion.div
+          className="h-full rounded-full"
+          style={{ backgroundColor: color }}
+          initial={{ width: 0 }}
+          animate={{ width: `${pct ?? barPct}%` }}
+          transition={{ duration: 0.8, ease: 'easeOut' }}
+        />
+      </div>
+    </div>
+  )
+}
+
+function SignalCard({ data }: { data: TrendResult }) {
+  const div = data.signalDivergence
+  const divType: DivergenceType = div?.type ?? 'neutral'
+  const cfg = DIVERGENCE_CONFIG[divType]
+
+  // 네이버 검색량 현재 레벨
+  const searchLevel = data.currentRatio >= 60 ? 'high' : data.currentRatio >= 30 ? 'medium' : 'low'
+  const searchColor = data.stage === 'rising' ? 'var(--color-go)' : data.stage === 'declining' ? 'var(--color-stop)' : 'var(--color-wait)'
+
+  const hasBlog  = !!data.blogData
+  const hasNews  = !!data.newsData
+  const hasShop  = !!(data.shoppingWeeks && data.shoppingWeeks.length > 0)
+  const hasGoogle = !!(data.googleWeeks && data.googleWeeks.length > 0)
+
+  // 쇼핑 레벨
+  let shopLevel: 'high' | 'medium' | 'low' | null = null
+  if (hasShop) {
+    const avg = data.shoppingWeeks!.slice(-4).reduce((a, b) => a + b.ratio, 0) / 4
+    shopLevel = avg >= 60 ? 'high' : avg >= 30 ? 'medium' : 'low'
+  }
+
+  if (!hasBlog && !hasNews && !hasGoogle) return null
+
+  return (
+    <div className="fluent-card rounded-2xl p-5">
+      <div className="flex items-start justify-between mb-4 gap-3 flex-wrap">
+        <div>
+          <h3 className="font-semibold text-sm mb-0.5">멀티 신호 비교</h3>
+          <p className="text-[11px] text-muted-foreground">검색량 · 쇼핑 · 블로그 · 뉴스 · 구글 교차 분석</p>
+        </div>
+        <div
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold"
+          style={{ backgroundColor: cfg.color + '18', color: cfg.color }}
+        >
+          <span>{cfg.icon}</span>
+          <span>{cfg.label}</span>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-3 mb-4">
+        <SignalBar label="네이버 검색량" level={searchLevel} count={undefined} color={searchColor} />
+        {hasShop && <SignalBar label="쇼핑 클릭 (구매의향)" level={shopLevel} color="#6366f1" />}
+        {hasBlog && (
+          <SignalBar
+            label="블로그 포스팅 (UGC 버즈)"
+            level={data.blogData!.buzzLevel}
+            count={data.blogData!.total}
+            maxCount={200000}
+            color="#10b981"
+          />
+        )}
+        {hasNews && (
+          <SignalBar
+            label="뉴스 기사 (미디어 노출)"
+            level={data.newsData!.mediaLevel}
+            count={data.newsData!.total}
+            maxCount={20000}
+            color="#f59e0b"
+          />
+        )}
+        {hasGoogle && (
+          <SignalBar label="구글 트렌드 (글로벌 교차)" level={null} color="#f59e0b" />
+        )}
+      </div>
+
+      <p className="text-xs text-muted-foreground leading-relaxed border-t border-border pt-3">
+        {cfg.desc}
+      </p>
+    </div>
+  )
+}
+
+// ─── 8. Trend ────────────────────────────────────────────────────────────────
 
 function TrendBlock({ data }: { data: TrendResult }) {
   return (
-    <div className="bg-card border border-border rounded-2xl p-5">
+    <div className="fluent-card rounded-2xl p-5">
       <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-        <h3 className="font-semibold text-sm">검색량 트렌드 + 4주 예측</h3>
+        <h3 className="font-semibold text-sm">트렌드 수명주기 분석</h3>
         <span className="text-[11px] text-muted-foreground font-mono">
           {data.startDate} ~ {data.endDate}
         </span>
@@ -502,10 +937,13 @@ function TrendBlock({ data }: { data: TrendResult }) {
       <TrendChart
         data={data.weeks}
         shoppingData={data.shoppingWeeks}
+        googleData={data.googleWeeks}
         forecast={data.forecast}
         inflectionWeek={data.inflectionWeek}
         keyword={data.keyword}
         stage={data.stage}
+        peakRatio={data.peakRatio}
+        riskScore={data.riskScore}
       />
       {data.inflectionWeek != null && data.weeks[data.inflectionWeek] && (
         <p className="text-[11px] text-muted-foreground mt-3">
@@ -521,14 +959,14 @@ function TrendBlock({ data }: { data: TrendResult }) {
 
 function RegionBlock({ stage }: { stage: TrendResult['stage'] }) {
   return (
-    <div className="bg-card border border-border rounded-2xl p-5">
+    <div className="fluent-card rounded-2xl p-5">
       <div className="mb-4">
-        <h3 className="font-semibold text-sm">지역 적합도</h3>
+        <h3 className="font-semibold text-sm">추천 지역 Top 5</h3>
         <p className="text-xs text-muted-foreground mt-0.5">
-          지역별 인구 구조와 트렌드 단계를 결합해 적합도를 분석합니다
+          트렌드 단계 + 인구 구조 기반으로 도입에 유리한 지역을 추천합니다
         </p>
       </div>
-      <RegionPanel stage={stage} />
+      <RecommendedRegions stage={stage} />
     </div>
   )
 }

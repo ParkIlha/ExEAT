@@ -31,3 +31,21 @@ def region_analyze():
         return jsonify(result), 404
 
     return jsonify(result)
+
+
+@region_bp.route("/region/recommend", methods=["POST"])
+def region_recommend():
+    """트렌드 단계 기반 추천 지역 Top N 자동 반환."""
+    data    = request.get_json(silent=True) or {}
+    stage   = (data.get("stage") or "stable").strip()
+    top_n   = min(int(data.get("topN", 5)), 10)
+
+    regions = get_regions()
+    results = []
+    for r in regions:
+        res = analyze_region(r["code"], stage)
+        if "error" not in res:
+            results.append(res)
+
+    results.sort(key=lambda x: x["score"], reverse=True)
+    return jsonify(results[:top_n])

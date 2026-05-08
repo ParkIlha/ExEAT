@@ -9,14 +9,16 @@ import time
 from services.naver import fetch_trend
 from services.lifecycle import analyze_lifecycle
 
-# 후보 키워드 (외식 트렌드 메뉴, 다양한 카테고리 균형)
+# 후보 키워드 (2025~2026 외식 트렌드 메뉴 기준)
 CANDIDATES = [
-    # 디저트
-    "두바이초콜릿", "탕후루", "약과", "크룽지", "카이막", "티라미수",
-    # 식음료
-    "마라탕", "양꼬치", "쌀국수", "하이볼", "흑당버블티",
-    # 베이커리
-    "베이글", "크로플", "도넛", "스모어",
+    # 2025~2026 상승 트렌드
+    "우베",  "흑임자라떼", "말차", "타르트", "크룽지",
+    # 안착 중인 스테디 (steady_emerging/safe 검증용)
+    "크로플", "베이글", "도넛", "마라탕", "로제파스타",
+    # 클래식·포화 스테디 (steady_saturated 검증용)
+    "치킨", "떡볶이", "삼겹살",
+    # 지켜볼 것들
+    "마라샹궈", "하이볼", "파스타", "흑당버블티",
 ]
 
 _CACHE: dict = {"ts": 0.0, "data": []}
@@ -31,7 +33,7 @@ def get_trending(top_n: int = 5, force: bool = False) -> list[dict]:
     results: list[dict] = []
     for kw in CANDIDATES:
         try:
-            trend = fetch_trend(kw, weeks=8)
+            trend = fetch_trend(kw, weeks=12)
             lc = analyze_lifecycle(trend["weeks"])
             delta = lc.get("avgRecent", 0) - lc.get("avgPrev", 0)
             results.append({

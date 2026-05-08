@@ -16,6 +16,8 @@ import requests
 
 NAVER_API_URL = "https://openapi.naver.com/v1/datalab/search"
 NAVER_SHOPPING_URL = "https://openapi.naver.com/v1/datalab/shopping/categories/keywords"
+NAVER_BLOG_URL = "https://openapi.naver.com/v1/search/blog.json"
+NAVER_NEWS_URL = "https://openapi.naver.com/v1/search/news.json"
 
 
 def _get_headers() -> dict:
@@ -33,7 +35,7 @@ def _get_headers() -> dict:
     }
 
 
-def fetch_trend(keyword: str, weeks: int = 12) -> dict:
+def fetch_trend(keyword: str, weeks: int = 26) -> dict:
     """
     단일 키워드의 검색량 트렌드를 조회한다.
 
@@ -93,7 +95,7 @@ def fetch_trend(keyword: str, weeks: int = 12) -> dict:
     }
 
 
-def fetch_shopping_trend(keyword: str, weeks: int = 12) -> list:
+def fetch_shopping_trend(keyword: str, weeks: int = 26) -> list:
     """
     네이버 쇼핑인사이트 키워드 클릭 트렌드를 조회한다.
     검색량(DataLab)과 달리 '구매 직전 시그널'(쇼핑 탭 클릭수)을 반영.
@@ -137,3 +139,65 @@ def fetch_shopping_trend(keyword: str, weeks: int = 12) -> list:
         ]
     except Exception:
         return []
+
+
+def fetch_blog_count(keyword: str) -> dict | None:
+    """
+    네이버 블로그 검색 결과 수를 반환한다.
+    '실제로 먹고 글 쓰는 사람 수' — UGC 버즈 지표.
+
+    Returns:
+        {"total": int, "buzzLevel": "high"|"medium"|"low"}
+        실패 시 None
+    """
+    try:
+        headers = {
+            "X-Naver-Client-Id": os.getenv("NAVER_CLIENT_ID"),
+            "X-Naver-Client-Secret": os.getenv("NAVER_CLIENT_SECRET"),
+        }
+        params = {"query": keyword, "display": 1, "sort": "date"}
+        response = requests.get(NAVER_BLOG_URL, headers=headers, params=params, timeout=8)
+        response.raise_for_status()
+        total = response.json().get("total", 0)
+
+        if total >= 50000:
+            buzz = "high"
+        elif total >= 10000:
+            buzz = "medium"
+        else:
+            buzz = "low"
+
+        return {"total": total, "buzzLevel": buzz}
+    except Exception:
+        return None
+
+
+def fetch_news_count(keyword: str) -> dict | None:
+    """
+    네이버 뉴스 검색 결과 수를 반환한다.
+    미디어 노출 수준 — 보통 트렌드보다 선행하거나 후행.
+
+    Returns:
+        {"total": int, "mediaLevel": "high"|"medium"|"low"}
+        실패 시 None
+    """
+    try:
+        headers = {
+            "X-Naver-Client-Id": os.getenv("NAVER_CLIENT_ID"),
+            "X-Naver-Client-Secret": os.getenv("NAVER_CLIENT_SECRET"),
+        }
+        params = {"query": keyword, "display": 1, "sort": "date"}
+        response = requests.get(NAVER_NEWS_URL, headers=headers, params=params, timeout=8)
+        response.raise_for_status()
+        total = response.json().get("total", 0)
+
+        if total >= 5000:
+            level = "high"
+        elif total >= 1000:
+            level = "medium"
+        else:
+            level = "low"
+
+        return {"total": total, "mediaLevel": level}
+    except Exception:
+        return None

@@ -6,7 +6,10 @@ export type Verdict = 'GO' | 'WAIT' | 'STOP'
 export type Stage = 'rising' | 'peak' | 'declining' | 'stable'
 
 export type ForecastPoint = { week: number; ratio: number }
-export type ItemType = 'trending' | 'classic' | 'seasonal' | 'growing' | 'fading' | 'niche' | 'stable'
+export type ItemType =
+  | 'trending' | 'classic' | 'seasonal' | 'growing' | 'fading' | 'niche' | 'stable'
+  | 'steady_saturated' | 'steady_safe' | 'steady_emerging'
+
 
 export type ActionPlan = {
   immediate:    string[]
@@ -27,12 +30,29 @@ export type TrendingItem = {
   riskScore: number
 }
 
+export type BuzzLevel  = 'high' | 'medium' | 'low'
+export type MediaLevel = 'high' | 'medium' | 'low'
+export type DivergenceType = 'bubble' | 'confirmed' | 'loyal' | 'media_driven' | 'neutral'
+
+export type BlogData = { total: number; buzzLevel: BuzzLevel }
+export type NewsData = { total: number; mediaLevel: MediaLevel }
+export type SignalDivergence = {
+  type:         DivergenceType
+  signalsUp:    number
+  signalsDown:  number
+  signalsTotal: number
+}
+
 export type TrendResult = {
   keyword: string
   startDate: string
   endDate: string
   weeks: TrendPoint[]
-  shoppingWeeks?: TrendPoint[]
+  shoppingWeeks?:    TrendPoint[]
+  googleWeeks?:      TrendPoint[]
+  blogData?:         BlogData
+  newsData?:         NewsData
+  signalDivergence?: SignalDivergence
   stage: Stage
   verdict: Verdict
   exitWeek: number | null
@@ -48,13 +68,29 @@ export type TrendResult = {
   inflectionWeek:  number | null
   forecast:        ForecastPoint[]
   riskScore:       number
-  itemType?:       ItemType
-  summary?:        string
+  itemType?:             ItemType
+  saturationScore?:      number
+  differentiationDifficulty?: string
+  entryVerdict?:         string
+  summary?:              string
   reasoning?:      string
   dataInsight?:    string
   marketContext?:  string
   actionPlan?:     ActionPlan
   aiProvider?:     'claude' | 'gemini' | 'algorithm' | 'unknown'
+}
+
+export type BusinessType =
+  | 'cafe'       // 카페·디저트
+  | 'restaurant' // 한식·중식·일식 등 일반 식당
+  | 'fastfood'   // 분식·패스트푸드
+  | 'foodtruck'  // 푸드트럭·포장마차
+  | 'bakery'     // 베이커리·제과점
+  | 'other'
+
+export type UserProfile = {
+  businessType: BusinessType
+  region: string   // 예: '서울', '경기', '부산'
 }
 
 export type SimInput = {
@@ -65,6 +101,10 @@ export type SimInput = {
 }
 
 interface AnalysisState {
+  // 사용자 프로필 (업종 + 지역)
+  userProfile: UserProfile | null
+  setUserProfile: (profile: UserProfile) => void
+
   // Home 검색 입력
   lastKeyword: string
   setLastKeyword: (kw: string) => void
@@ -84,6 +124,9 @@ const CACHE_TTL = 1000 * 60 * 30  // 30분
 export const useAnalysis = create<AnalysisState>()(
   persist(
     (set, get) => ({
+      userProfile: null,
+      setUserProfile: (profile) => set({ userProfile: profile }),
+
       lastKeyword: '',
       setLastKeyword: (kw) => set({ lastKeyword: kw }),
 

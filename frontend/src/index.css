@@ -66,6 +66,79 @@
   --ring:                 #1A1A1A;
 }
 
+/* ── Fluent Design 토큰 ── */
+:root {
+  /* Depth shadows (Fluent: 4단계 elevation) */
+  --shadow-2:  0 1px 2px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04);
+  --shadow-4:  0 2px 4px rgba(0,0,0,0.08), 0 1px 6px rgba(0,0,0,0.05);
+  --shadow-8:  0 4px 8px rgba(0,0,0,0.10), 0 2px 12px rgba(0,0,0,0.06);
+  --shadow-16: 0 8px 16px rgba(0,0,0,0.12), 0 4px 24px rgba(0,0,0,0.08);
+  --shadow-32: 0 16px 32px rgba(0,0,0,0.14), 0 8px 40px rgba(0,0,0,0.08);
+
+  /* Acrylic 베이스 (frosted glass) */
+  --acrylic-bg:     rgba(250,250,247,0.75);
+  --acrylic-bg-card: rgba(255,255,255,0.82);
+  --acrylic-border: rgba(255,255,255,0.6);
+
+  /* Fluent Reveal - subtle light edge */
+  --reveal-border: rgba(255,255,255,0.5);
+
+  /* Glow accents */
+  --glow-go:   0 0 20px rgba(45,122,79,0.18),  0 0 6px rgba(45,122,79,0.12);
+  --glow-wait: 0 0 20px rgba(201,136,58,0.18), 0 0 6px rgba(201,136,58,0.12);
+  --glow-stop: 0 0 20px rgba(193,59,59,0.18),  0 0 6px rgba(193,59,59,0.12);
+
+  /* Fluent motion */
+  --ease-fluent:     cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-fluent-out: cubic-bezier(0.0,  0, 0.2, 1);
+}
+
+/* ── Fluent Card 유틸리티 ── */
+.fluent-card {
+  background: var(--acrylic-bg-card);
+  border: 1px solid var(--acrylic-border);
+  box-shadow: var(--shadow-4);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: box-shadow 0.2s var(--ease-fluent), transform 0.2s var(--ease-fluent);
+}
+.fluent-card:hover {
+  box-shadow: var(--shadow-8);
+  transform: translateY(-1px);
+}
+.fluent-card-elevated {
+  background: var(--acrylic-bg-card);
+  border: 1px solid var(--acrylic-border);
+  box-shadow: var(--shadow-8);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+/* ── Fluent Button Reveal ── */
+button, [role="button"] {
+  transition: transform 0.15s var(--ease-fluent), box-shadow 0.15s var(--ease-fluent);
+}
+button:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+/* ── Fluent Acrylic 배경 ── */
+.acrylic {
+  background: var(--acrylic-bg);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid var(--acrylic-border);
+}
+
+/* ── 스크롤바 미니멀 ── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: var(--muted-foreground); }
+
+/* ── 선택 색상 ── */
+::selection { background: rgba(45,122,79,0.15); }
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -74,6 +147,7 @@
   body {
     @apply bg-background text-foreground font-sans;
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
     line-height: 1.6;
   }
 }

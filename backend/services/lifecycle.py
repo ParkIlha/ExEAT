@@ -32,7 +32,7 @@ def _stdev(values: list[float]) -> float:
 
 
 def _linreg_forecast(values: list[float], steps: int = 4) -> list[float]:
-    """단순 최소제곱 선형회귀로 다음 steps 주차 예측."""
+    """단순 최소제곱 선형회귀 (폴백용)."""
     n = len(values)
     if n < 2:
         return [values[-1] if values else 0.0] * steps
@@ -49,6 +49,65 @@ def _linreg_forecast(values: list[float], steps: int = 4) -> list[float]:
         max(0.0, intercept + slope * (n + i))
         for i in range(steps)
     ]
+
+
+def _holt_winters_forecast(values: list[float], steps: int = 4) -> list[float]:
+    """Holt-Winters 지수평활 예측 (트렌드 반영, 12주 단기 시계열에 최적)."""
+    try:
+        import pandas as pd
+        from statsmodels.tsa.holtwinters import ExponentialSmoothing
+
+        series = pd.Series(values)
+        # 12주 데이터에서 계절성 주기는 제거, trend='add'로 우상향/하락 반영
+        model = ExponentialSmoothing(
+            series,
+            trend="add",
+            seasonal=None,
+            initialization_method="estimated",
+        ).fit(optimized=True, remove_bias=True)
+        forecast = model.forecast(steps)
+        return [max(0.0, float(v)) for v in forecast]
+    except Exception as e:
+        print(f"[holt-winters] failed: {e}, falling back to linreg")
+        return _linreg_forecast(values, steps)
+
+
+def _prophet_forecast(periods: list[str], values: list[float], steps: int = 4) -> list[float]:
+    """
+    Facebook Prophet 예측 — 변동점 자동 감지 + 불확실성 구간 포함.
+    12주처럼 짧은 시계열에서도 changepoint를 감지해 꺾이는 트렌드를 잡아냄.
+    실패 시 Holt-Winters → 선형회귀 순으로 폴백.
+    """
+    try:
+        import pandas as pd
+        from prophet import Prophet
+        import logging
+        logging.getLogger("prophet").setLevel(logging.ERROR)
+        logging.getLogger("cmdstanpy").setLevel(logging.ERROR)
+
+        df = pd.DataFrame({
+            "ds": pd.to_datetime(periods),
+            "y": values,
+        })
+
+        m = Prophet(
+            yearly_seasonality=False,
+            weekly_seasonality=False,
+            daily_seasonality=False,
+            seasonality_mode="additive",
+            changepoint_prior_scale=0.4,   # 짧은 시계열 → 변동점 민감도 높임
+            n_changepoints=min(5, len(values) // 2),
+        )
+        m.fit(df)
+
+        future = m.make_future_dataframe(periods=steps, freq="W")
+        fc = m.predict(future)
+        predicted = fc["yhat"].values[-steps:]
+        return [max(0.0, round(float(v), 1)) for v in predicted]
+
+    except Exception as e:
+        print(f"[prophet] failed: {e}, falling back to holt-winters")
+        return _holt_winters_forecast(values, steps)
 
 
 def _detect_inflection(smoothed: list[float]) -> int | None:
@@ -77,45 +136,106 @@ def _classify_item_type(
     """
     메뉴 본질 분류 (stage와 별개의 차원).
 
-    - trending: 폭발적 상승 (변동성 크고 단기 가속 상승)
-    - classic:  오래 안정 + 평균 검색량 높음 (충성 수요)
-    - seasonal: 큰 변동성 + 주기적 패턴
-    - growing:  점진적 상승
-    - fading:   정점 대비 큰 하락 (저물어가는)
-    - niche:    검색량 낮고 안정 (틈새)
-    - stable:   기본값 (분류 불가)
+    우선순위 (위에서 아래 순):
+    1. trending:         폭발적 상승 (변동성 크고 단기 가속 상승)
+    2. steady_saturated: 장기 고검색량 → 시장 포화 (치킨·커피 등)  ← fading보다 먼저!
+    3. fading:           정점 대비 큰 하락 AND 평균도 낮음 (탕후루·대만카스테라)
+    4. steady_emerging:  유행 후 안착 (베이글·크로플)
+    5. steady_safe:      중간 검색량 + 안정
+    6. classic:          변동성 극히 낮은 고검색량
+    7. seasonal / growing / niche / stable
     """
     if not ratios:
         return "stable"
 
     avg_all = sum(ratios) / len(ratios)
     cv = volatility / avg_all if avg_all > 0 else 0.0  # 변동계수
+    peak = max(ratios)
+    current = ratios[-1]
+    first_half_avg = sum(ratios[:6]) / 6 if len(ratios) >= 6 else avg_all
+    second_half_avg = sum(ratios[6:]) / max(1, len(ratios) - 6)
 
-    # 폭발적 상승: 큰 변동 + 가속 + 4주 평균이 크게 올랐음
+    # ── 1. 폭발적 상승 ────────────────────────────────────────────────────────
     if delta >= 8 and momentum >= 0.5 and cv >= 0.30:
         return "trending"
 
-    # 한물감: 정점 대비 50% 이상 하락
-    if peak_decay >= 0.5:
+    # ── 2. 스테디 포화 (치킨·삼겹살·커피 등) ─────────────────────────────────
+    # avg가 높으면 단기 하락(peak_decay)이 있어도 스테디 시장으로 분류
+    # cv 기준을 완화(< 0.40): 치킨처럼 간헐적 변동이 있어도 포함
+    if avg_all >= 55 and cv < 0.40:
+        return "steady_saturated"
+
+    # ── 3. 스테디 안정 (중간 검색량 + 낮은 변동성) ───────────────────────────
+    is_stable_cv = cv < 0.25 and abs(delta) < 8
+
+    if is_stable_cv and avg_all >= 30:
+        # steady_emerging: 유행 후 안착 (정점의 30~70%에서 안정화)
+        if peak_decay >= 0.25 and current / peak >= 0.25:
+            return "steady_emerging"
+        return "steady_safe"
+
+    # ── 4. 한물감 ─────────────────────────────────────────────────────────────
+    # 평균도 낮고, 정점에서 크게 하락한 경우에만 fading
+    # (avg >= 55는 이미 steady_saturated로 처리됨)
+    if peak_decay >= 0.5 and avg_all < 55:
         return "fading"
 
-    # 클래식: 평균 검색량 충분 + 변동성 매우 낮음
-    if avg_all >= 35 and cv < 0.18 and abs(delta) < 5:
+    # ── 5. 클래식 (변동성 극히 낮은 고검색량) ────────────────────────────────
+    if avg_all >= 35 and cv < 0.20 and abs(delta) < 6:
         return "classic"
 
-    # 계절성: 매우 큰 변동성 (주기 검출은 12주로 제한적이라 CV 기반)
+    # ── 6. 계절성 ─────────────────────────────────────────────────────────────
     if cv >= 0.55:
         return "seasonal"
 
-    # 점진 상승
+    # ── 7. 점진 상승 ──────────────────────────────────────────────────────────
     if stage == "rising" or (delta >= 3 and momentum >= 0):
         return "growing"
 
-    # 틈새: 검색량 낮고 안정
+    # ── 8. 틈새 ───────────────────────────────────────────────────────────────
     if avg_all < 20 and cv < 0.30:
         return "niche"
 
     return "stable"
+
+
+def _steady_analysis(ratios: list[float], item_type: str) -> dict:
+    """
+    스테디 메뉴 전용 심층 분석.
+    포화도·경쟁 강도·진입 전략 방향을 추가로 산출한다.
+    """
+    if not item_type.startswith("steady") and item_type != "classic":
+        return {}
+
+    avg_all = sum(ratios) / len(ratios)
+    peak = max(ratios)
+    current = ratios[-1]
+    cv = (_stdev(ratios) / avg_all) if avg_all > 0 else 0.0
+
+    # 포화도 0~100 (높을수록 경쟁 치열)
+    # avg_all 높을수록, cv 낮을수록, peak_decay 작을수록 포화
+    saturation = min(100, round(
+        (avg_all / 100) * 50          # 절대 검색량 비중
+        + (1 - cv) * 30               # 안정성 (흔들림 없음 = 이미 자리 잡힘)
+        + (current / peak) * 20       # 현재 유지율
+    ))
+
+    # 차별화 난이도 (포화도 기반)
+    if saturation >= 75:
+        differentiation = "매우 어려움"
+        entry_verdict = "CAUTION"
+    elif saturation >= 50:
+        differentiation = "어려움"
+        entry_verdict = "POSSIBLE"
+    else:
+        differentiation = "보통"
+        entry_verdict = "VIABLE"
+
+    return {
+        "saturationScore": saturation,
+        "differentiationDifficulty": differentiation,
+        "entryVerdict": entry_verdict,
+    }
 
 
 def _risk_score(
@@ -168,7 +288,7 @@ def analyze_lifecycle(weeks: list[dict]) -> dict:
     if not weeks:
         return _empty_result()
 
-    ratios = [float(w.get("ratio", 0)) for w in weeks]
+    ratios  = [float(w.get("ratio", 0)) for w in weeks]
     n = len(ratios)
 
     if n < 4:
@@ -223,15 +343,26 @@ def analyze_lifecycle(weeks: list[dict]) -> dict:
 
     # 변곡점, 예측, 위험도, itemType
     inflection = _detect_inflection(smoothed)
-    forecast_values = _linreg_forecast(ratios[-8:] if n >= 8 else ratios, steps=4)
+
+    # Prophet 예측 (period 문자열 필요)
+    periods = [w.get("period", "") for w in weeks]
+    use_ratios = ratios[-8:] if n >= 8 else ratios
+    use_periods = periods[-8:] if n >= 8 else periods
+
+    if all(use_periods):  # period 값이 있으면 Prophet 시도
+        forecast_values = _prophet_forecast(use_periods, use_ratios, steps=4)
+    else:
+        forecast_values = _holt_winters_forecast(use_ratios, steps=4)
+
     forecast = [
         {"week": i + 1, "ratio": round(v, 1)}
         for i, v in enumerate(forecast_values)
     ]
     risk = _risk_score(stage, delta, peak_decay, volatility, momentum)
     item_type = _classify_item_type(ratios, stage, peak_decay, volatility, momentum, delta)
+    steady_info = _steady_analysis(ratios, item_type)
 
-    return {
+    result = {
         "stage":          stage,
         "verdict":        verdict,
         "exitWeek":       exit_week,
@@ -248,7 +379,9 @@ def analyze_lifecycle(weeks: list[dict]) -> dict:
         "riskScore":      risk,
         "itemType":       item_type,
         "avgAll":         round(sum(ratios) / len(ratios), 1),
+        **steady_info,  # steadyInfo: saturationScore, differentiationDifficulty, entryVerdict
     }
+    return result
 
 
 def _empty_result() -> dict:
