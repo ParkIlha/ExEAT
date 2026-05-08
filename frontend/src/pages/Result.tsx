@@ -724,7 +724,7 @@ function RiskGauge({ data }: { data: TrendResult }) {
 
 function MetricsRow({ data }: { data: TrendResult }) {
   const items = [
-    { label: '현재 검색량', value: data.currentRatio, suffix: '' },
+    { label: '현재 지수', value: data.currentRatio, suffix: '' },
     { label: '최고점',       value: data.peakRatio,    suffix: '' },
     { label: '4주 평균',     value: data.avgRecent,    suffix: '' },
     {

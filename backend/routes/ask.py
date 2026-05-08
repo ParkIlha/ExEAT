@@ -7,6 +7,7 @@
 """
 
 import threading
+import time
 from flask import Blueprint, request, jsonify
 
 from services import cache as file_cache
@@ -15,6 +16,9 @@ from services.naver import fetch_trend as fetch_naver_trend, fetch_long_range
 from services.lifecycle import analyze_lifecycle
 from services.ai import ask_ai
 from services.synthetic_trend import synthetic_weeks
+from services.keyword_samples import KEYWORD_SAMPLES as DEMO_FIXTURES
+
+_DEMO_DELAY = 2.8
 
 ask_bp = Blueprint("ask", __name__)
 
@@ -211,6 +215,12 @@ def ask():
     if not keyword:
         return jsonify({"error": "keyword 가 필요합니다."}), 400
 
+    if keyword in DEMO_FIXTURES:
+        time.sleep(_DEMO_DELAY)
+        fixture = dict(DEMO_FIXTURES[keyword])
+        fixture["fromCache"] = False
+        return jsonify(fixture)
+
     # ── 1. 파일 캐시 확인 (24h TTL, user_profile 없는 일반 조회만) ────────────
     if not user_profile:
         cached = file_cache.load(keyword)
@@ -301,6 +311,7 @@ def ask():
             "reasoning":        ai_result["reasoning"],
             "dataInsight":      ai_result.get("dataInsight", ""),
             "marketContext":    ai_result.get("marketContext", ""),
+            "startupCost":      ai_result.get("startupCost", ""),
             "aiProvider":       ai_result.get("aiProvider", "unknown"),
             "signalDivergence": divergence,
             "fromCache":        False,

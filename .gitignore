@@ -17,6 +17,7 @@ env/
 backend/.env
 backend/data/*.db
 backend/data/cache/
+backend/services/keyword_samples.py
 
 # Node (for future frontend)
 node_modules/
