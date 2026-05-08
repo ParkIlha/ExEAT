@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import './App.css'
+import TrendChart from './components/TrendChart'
 
 // ─── types ────────────────────────────────────────────────────────────────────
 
@@ -159,29 +160,11 @@ export default function App() {
           )}
         </section>
 
-        {/* F3 — TrendChart (placeholder until STEP 5) */}
+        {/* F3 — TrendChart */}
         <section className="bg-white border border-[var(--color-border)] rounded-2xl p-6 shadow-sm">
           <h2 className="text-base font-semibold mb-3">검색량 트렌드</h2>
           {trend ? (
-            <div>
-              <p className="text-xs text-[var(--color-muted)] font-mono mb-3">
-                {trend.keyword} · {trend.startDate} ~ {trend.endDate} · {trend.weeks.length}주
-              </p>
-              {/* 임시: raw 수치 바 차트 — STEP 5에서 recharts로 교체 */}
-              <div className="flex items-end gap-1 h-28">
-                {trend.weeks.map((w) => (
-                  <div key={w.period} className="flex-1 flex flex-col items-center gap-1">
-                    <div
-                      className="w-full bg-[var(--color-ink)] rounded-sm opacity-70"
-                      style={{ height: `${Math.max(w.ratio, 2)}%` }}
-                    />
-                    <span className="text-[10px] font-mono text-[var(--color-muted)] hidden md:block">
-                      {w.period.slice(5)}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <TrendChart data={trend.weeks} keyword={trend.keyword} />
           ) : (
             <p className="text-sm text-[var(--color-muted)]">
               키워드를 분석하면 12주 그래프가 표시됩니다.

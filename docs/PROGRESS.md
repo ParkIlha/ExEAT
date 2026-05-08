@@ -7,7 +7,7 @@
 
 ## 🎯 현재 위치
 
-**STEP 4 완료 / STEP 5 대기** — TrendChart (recharts) 실구현 예정
+**STEP 5 완료 / STEP 6 대기** — 수명주기 단계 판별 로직 (`services/lifecycle.py`)
 
 ---
 
@@ -20,7 +20,7 @@
 | 2 | Flask 백엔드 기본 골격 — `/api/health` | 🟢 | 5001 포트 / `routes/health.py` |
 | 3 | 네이버 DataLab API 연동 — `/api/trend` | 🟡 | 코드 완료. `.env`에 NAVER 키 입력 후 curl 확인 대기 |
 | 4 | React + Vite + Tailwind + shadcn/ui 프론트 골격 | 🟢 | Tailwind v4 + 디자인 토큰 + AskBox/VerdictCard/TrendChart 자리 완료 |
-| 5 | TrendChart 컴포넌트 — 그래프 시각화 | ⚪ | recharts |
+| 5 | TrendChart 컴포넌트 — 그래프 시각화 | 🟢 | recharts AreaChart + 4주 평균 기준선 |
 | 6 | 수명주기 단계 판별 로직 (`services/lifecycle.py`) | ⚪ | F1, F3 핵심 |
 | 7 | 과거 케이스 라이브러리 (`data/cases.json`) | ⚪ | F7 |
 | 8 | 지역 인구 데이터 (`data/population.csv`) | ⚪ | F4 |
@@ -50,18 +50,15 @@
 
 ---
 
-## 🔄 현재 STEP 4 — 프론트엔드 골격
+## 🔄 현재 STEP 5 — TrendChart
 
 **완료된 것**:
-- `frontend/` Vite + React + TypeScript 스캐폴딩 완료
-- `vite.config.ts`에 `/api` → `http://localhost:5001` 프록시 설정
-- `App.tsx` 임시 화면 (Health 확인 + Trend 호출 UI)
-
-**완료된 것 (전부)**:
-- Tailwind CSS v4 (`@tailwindcss/vite`) 설치 + `vite.config.ts` 적용
-- 디자인 토큰 (`#FAFAF7`, Pretendard, JetBrains Mono 등) `index.css`에 `@theme` 블록으로 정의
-- `App.tsx` → 실제 ExEAT 레이아웃 (헤더 / AskBox / VerdictCard placeholder / TrendChart 임시 바 차트 / 푸터)
-- `http://127.0.0.1:5173` 실행 + 백엔드 health 연결 확인
+- `frontend/src/components/TrendChart.tsx` — recharts AreaChart
+  - x축 주차 라벨, y축 0~100 고정, 그라디언트 fill
+  - 4주 이동평균 기준선 (ReferenceLine)
+  - STEP 6 연동 대비 `stage` prop 자리 (rising/peak/declining/stable → 선 색상 변경)
+  - 커스텀 툴팁
+- `App.tsx` 임시 바 차트 → `<TrendChart />` 교체
 
 **디자인 토큰 (ARCHITECTURE.md에서)**:
 ```
@@ -79,19 +76,19 @@ STOP:  #C13B3B
 
 **지금 해야 할 작업: STEP 3 최종 검증 + STEP 5 TrendChart(recharts)**
 
-**선행 — STEP 3 검증** (아직 안 됐으면):
-1. `backend/.env`에 `NAVER_CLIENT_ID`, `NAVER_CLIENT_SECRET` 입력
-2. 백엔드 서버 (재)시작: `cd backend && FLASK_PORT=5001 FLASK_ENV=development python app.py`
-3. 프론트 (`http://127.0.0.1:5173`)에서 키워드 입력 → "분석하기" 클릭 → 임시 바 차트 뜨면 STEP 3 완료
+**지금 해야 할 작업: STEP 6 — 수명주기 단계 판별 로직**
 
-**STEP 5 — TrendChart (recharts)**:
-1. `cd frontend && npm install recharts`
-2. `frontend/src/components/TrendChart.tsx` 생성
-   - recharts `AreaChart` 사용
-   - x축: `period` (주 단위), y축: `ratio` (0~100)
-   - GO/WAIT/STOP 구간을 `ReferenceArea`로 색깔 음영 표시 (STEP 6에 맞춰 자리만 잡음)
-3. `App.tsx`의 임시 바 차트 → `<TrendChart />` 교체
-4. 검증 후 STEP 6 (수명주기 단계 판별 로직) 진행
+1. `backend/services/lifecycle.py` 생성
+   - 입력: `weeks: list[dict]` (period, ratio)
+   - 처리: 4주 이동평균 → 1차 미분(추세) → 2차 미분(변곡점) → 단계 분류
+   - 출력: `{ stage, exitWeek, peakWeek, currentRatio }`
+   - stage: `"rising"` / `"peak"` / `"declining"` / `"stable"`
+2. `backend/routes/trend.py` — `/api/trend` 응답에 `stage`, `exitWeek` 필드 추가
+3. `frontend/src/App.tsx` — `stage`를 `<TrendChart stage={...} />`에 전달
+4. `frontend/src/App.tsx` — `<VerdictCard>`에 GO/WAIT/STOP 판정 연결
+   - rising → GO, peak → WAIT, declining → STOP, stable → WAIT
+5. 검증: "두바이초콜릿" 입력 → 그래프 선 색상이 단계에 맞게 변경되면 완료
+6. 완료 후 STEP 7 (과거 케이스 라이브러리) 진행
 
 **실행 방법**:
 ```bash
