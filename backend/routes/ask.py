@@ -10,10 +10,10 @@ import threading
 import requests
 from flask import Blueprint, request, jsonify
 
-from services.naver import fetch_trend, fetch_shopping_trend, fetch_blog_count, fetch_news_count
 from services.google_trend import fetch_google_trend, compute_google_direction
 from services.lifecycle import analyze_lifecycle
 from services.ai import ask_ai
+from services.synthetic_trend import synthetic_weeks
 
 ask_bp = Blueprint("ask", __name__)
 
@@ -32,32 +32,21 @@ def clear_ask_caches() -> None:
 def _build_result(keyword: str) -> dict | None:
     """단일 키워드 전체 분석 결과를 반환. 캐싱 대상."""
     try:
-        trend = fetch_trend(keyword)
-        with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
-            f_shopping = executor.submit(fetch_shopping_trend, keyword)
-            f_blog     = executor.submit(fetch_blog_count, keyword)
-            f_news     = executor.submit(fetch_news_count, keyword)
-            f_google   = executor.submit(fetch_google_trend, keyword)
-        shopping_weeks = f_shopping.result() or []
-        blog_data      = f_blog.result()
-        news_data      = f_news.result()
-        google_weeks   = f_google.result() or []
-        google_dir     = compute_google_direction(google_weeks)
-        lifecycle      = analyze_lifecycle(trend["weeks"])
+        google_weeks = fetch_google_trend(keyword, weeks=12) or []
+        google_dir   = compute_google_direction(google_weeks)
+        lifecycle    = analyze_lifecycle(google_weeks)
         divergence     = _compute_signal_divergence(
-            lifecycle.get("stage", "stable"), shopping_weeks,
-            blog_data, news_data, google_dir,
+            lifecycle.get("stage", "stable"), [],
+            None, None, google_dir,
         )
         ai_result = ask_ai(
-            keyword, lifecycle, trend["weeks"],
-            shopping=shopping_weeks or None,
-            blog=blog_data, news=news_data, google_dir=google_dir,
+            keyword, lifecycle, google_weeks,
+            shopping=None,
+            blog=None, news=None, google_dir=google_dir,
         )
         resp = {
             "keyword": keyword,
-            "startDate": trend["startDate"],
-            "endDate":   trend["endDate"],
-            "weeks":     trend["weeks"],
+            "weeks":     google_weeks,
             **lifecycle,
             "verdict":       ai_result["verdict"],
             "summary":       ai_result["summary"],
@@ -74,10 +63,8 @@ def _build_result(keyword: str) -> dict | None:
                 "alternatives": ai_result["alternatives"],
             },
         }
-        if shopping_weeks: resp["shoppingWeeks"] = shopping_weeks
-        if blog_data:       resp["blogData"]      = blog_data
-        if news_data:       resp["newsData"]      = news_data
-        if google_weeks:    resp["googleWeeks"]   = google_weeks
+        if google_weeks:
+            resp["googleWeeks"] = google_weeks
         return resp
     except Exception as e:
         print(f"[warm] '{keyword}' 캐시 실패: {e}")
@@ -227,51 +214,42 @@ def ask():
                 print(f"[ask] '{keyword}' 캐시 있지만 알고리즘 전용 → AI 재분석")
 
     try:
-        # 1. 네이버 DataLab 트렌드 (메인, 동기)
-        trend = fetch_trend(keyword)
-
-        # 2. 부가 데이터 소스 병렬 수집 (실패해도 무방)
-        with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
-            f_shopping = executor.submit(fetch_shopping_trend, keyword)
-            f_blog     = executor.submit(fetch_blog_count, keyword)
-            f_news     = executor.submit(fetch_news_count, keyword)
-            f_google   = executor.submit(fetch_google_trend, keyword)
-
-        shopping_weeks = f_shopping.result() or []
-        blog_data      = f_blog.result()      # None or dict
-        news_data      = f_news.result()      # None or dict
-        google_weeks   = f_google.result() or []
+        # 1. Google Trends (메인)
+        google_weeks = fetch_google_trend(keyword, weeks=12) or []
+        data_source = "google_trends"
+        if not google_weeks:
+            google_weeks = synthetic_weeks(keyword, weeks=12)
+            data_source = "synthetic"
 
         google_dir = compute_google_direction(google_weeks)
 
-        # 3. 수명주기 + 심층 분석
-        lifecycle = analyze_lifecycle(trend["weeks"])
+        # 2. 수명주기 + 심층 분석
+        lifecycle = analyze_lifecycle(google_weeks)
 
-        # 4. 신호 교차 분석
+        # 3. 신호 교차 분석 (네이버 계열 제거)
         divergence = _compute_signal_divergence(
             lifecycle.get("stage", "stable"),
-            shopping_weeks,
-            blog_data,
-            news_data,
+            [],
+            None,
+            None,
             google_dir,
         )
 
-        # 5. AI 액션 플랜 (모든 데이터 전달)
+        # 4. AI 액션 플랜 (구글 시계열 + lifecycle 전달)
         ai_result = ask_ai(
-            keyword, lifecycle, trend["weeks"],
-            shopping=shopping_weeks or None,
-            blog=blog_data,
-            news=news_data,
+            keyword, lifecycle, google_weeks,
+            shopping=None,
+            blog=None,
+            news=None,
             google_dir=google_dir,
             user_profile=user_profile,
         )
 
         resp = {
             "keyword":       keyword,
-            "startDate":     trend["startDate"],
-            "endDate":       trend["endDate"],
-            "weeks":         trend["weeks"],
+            "weeks":         google_weeks,
             **lifecycle,
+            "dataSource":    data_source,
             "verdict":       ai_result["verdict"],
             "summary":       ai_result["summary"],
             "reasoning":     ai_result["reasoning"],
@@ -288,14 +266,7 @@ def ask():
             },
         }
 
-        if shopping_weeks:
-            resp["shoppingWeeks"] = shopping_weeks
-        if blog_data:
-            resp["blogData"] = blog_data
-        if news_data:
-            resp["newsData"] = news_data
-        if google_weeks:
-            resp["googleWeeks"] = google_weeks
+        resp["googleWeeks"] = google_weeks
 
         # AI 결과 포함 시 캐시 업데이트 (다음 호출은 즉시 응답)
         if "gemini" in resp.get("aiProvider", "") and not user_profile:
@@ -306,17 +277,6 @@ def ask():
 
     except ValueError as e:
         return jsonify({"error": str(e)}), 500
-
-    except requests.HTTPError as e:
-        status = e.response.status_code if e.response is not None else None
-        return jsonify({
-            "error": "네이버 API 호출 실패",
-            "status": status,
-            "detail": e.response.text if e.response is not None else str(e),
-        }), 502
-
-    except requests.RequestException as e:
-        return jsonify({"error": "네트워크 오류", "detail": str(e)}), 502
 
     except Exception as e:
         return jsonify({"error": "서버 오류", "detail": str(e)}), 500

@@ -6,8 +6,9 @@
 """
 
 import time
-from services.naver import fetch_trend
+from services.google_trend import fetch_google_trend
 from services.lifecycle import analyze_lifecycle
+from services.synthetic_trend import synthetic_weeks
 
 # 후보 키워드 (2025~2026 외식 트렌드 메뉴 기준)
 CANDIDATES = [
@@ -38,8 +39,10 @@ def get_trending(top_n: int = 5, force: bool = False) -> list[dict]:
     results: list[dict] = []
     for kw in CANDIDATES:
         try:
-            trend = fetch_trend(kw, weeks=12)
-            lc = analyze_lifecycle(trend["weeks"])
+            weeks = fetch_google_trend(kw, weeks=12)
+            if not weeks:
+                weeks = synthetic_weeks(kw, weeks=12)
+            lc = analyze_lifecycle(weeks)
             delta = lc.get("avgRecent", 0) - lc.get("avgPrev", 0)
             results.append({
                 "keyword":   kw,
