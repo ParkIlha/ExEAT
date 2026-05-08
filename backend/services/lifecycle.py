@@ -66,6 +66,58 @@ def _detect_inflection(smoothed: list[float]) -> int | None:
     return last_change
 
 
+def _classify_item_type(
+    ratios: list[float],
+    stage: str,
+    peak_decay: float,
+    volatility: float,
+    momentum: float,
+    delta: float,
+) -> str:
+    """
+    메뉴 본질 분류 (stage와 별개의 차원).
+
+    - trending: 폭발적 상승 (변동성 크고 단기 가속 상승)
+    - classic:  오래 안정 + 평균 검색량 높음 (충성 수요)
+    - seasonal: 큰 변동성 + 주기적 패턴
+    - growing:  점진적 상승
+    - fading:   정점 대비 큰 하락 (저물어가는)
+    - niche:    검색량 낮고 안정 (틈새)
+    - stable:   기본값 (분류 불가)
+    """
+    if not ratios:
+        return "stable"
+
+    avg_all = sum(ratios) / len(ratios)
+    cv = volatility / avg_all if avg_all > 0 else 0.0  # 변동계수
+
+    # 폭발적 상승: 큰 변동 + 가속 + 4주 평균이 크게 올랐음
+    if delta >= 8 and momentum >= 0.5 and cv >= 0.30:
+        return "trending"
+
+    # 한물감: 정점 대비 50% 이상 하락
+    if peak_decay >= 0.5:
+        return "fading"
+
+    # 클래식: 평균 검색량 충분 + 변동성 매우 낮음
+    if avg_all >= 35 and cv < 0.18 and abs(delta) < 5:
+        return "classic"
+
+    # 계절성: 매우 큰 변동성 (주기 검출은 12주로 제한적이라 CV 기반)
+    if cv >= 0.55:
+        return "seasonal"
+
+    # 점진 상승
+    if stage == "rising" or (delta >= 3 and momentum >= 0):
+        return "growing"
+
+    # 틈새: 검색량 낮고 안정
+    if avg_all < 20 and cv < 0.30:
+        return "niche"
+
+    return "stable"
+
+
 def _risk_score(
     stage: str,
     delta: float,
@@ -169,7 +221,7 @@ def analyze_lifecycle(weeks: list[dict]) -> dict:
             target = current * 0.5
             exit_week = max(1, round((current - target) / weekly_drop))
 
-    # 변곡점, 예측, 위험도
+    # 변곡점, 예측, 위험도, itemType
     inflection = _detect_inflection(smoothed)
     forecast_values = _linreg_forecast(ratios[-8:] if n >= 8 else ratios, steps=4)
     forecast = [
@@ -177,6 +229,7 @@ def analyze_lifecycle(weeks: list[dict]) -> dict:
         for i, v in enumerate(forecast_values)
     ]
     risk = _risk_score(stage, delta, peak_decay, volatility, momentum)
+    item_type = _classify_item_type(ratios, stage, peak_decay, volatility, momentum, delta)
 
     return {
         "stage":          stage,
@@ -187,13 +240,14 @@ def analyze_lifecycle(weeks: list[dict]) -> dict:
         "currentRatio":   round(current, 1),
         "avgRecent":      round(recent_avg, 1),
         "avgPrev":        round(prev_avg, 1),
-        # 신규
         "momentum":       round(momentum, 2),
         "volatility":     round(volatility, 2),
         "peakDecay":      round(peak_decay, 3),
         "inflectionWeek": inflection,
         "forecast":       forecast,
         "riskScore":      risk,
+        "itemType":       item_type,
+        "avgAll":         round(sum(ratios) / len(ratios), 1),
     }
 
 
@@ -205,20 +259,24 @@ def _empty_result() -> dict:
         "avgRecent": 0.0, "avgPrev": 0.0,
         "momentum": 0.0, "volatility": 0.0, "peakDecay": 0.0,
         "inflectionWeek": None, "forecast": [], "riskScore": 0,
+        "itemType": "stable", "avgAll": 0.0,
     }
 
 
 def _simple_result(ratios: list[float]) -> dict:
     peak_idx = ratios.index(max(ratios))
+    avg = sum(ratios) / len(ratios)
     return {
         "stage": "stable", "verdict": "WAIT",
         "exitWeek": None, "peakWeek": peak_idx,
         "peakRatio": round(max(ratios), 1),
         "currentRatio": round(ratios[-1], 1),
-        "avgRecent": round(sum(ratios) / len(ratios), 1),
-        "avgPrev":   round(sum(ratios) / len(ratios), 1),
+        "avgRecent": round(avg, 1),
+        "avgPrev":   round(avg, 1),
         "momentum": 0.0, "volatility": 0.0, "peakDecay": 0.0,
         "inflectionWeek": None,
         "forecast": [{"week": i + 1, "ratio": round(ratios[-1], 1)} for i in range(4)],
         "riskScore": 50,
+        "itemType": "stable",
+        "avgAll": round(avg, 1),
     }

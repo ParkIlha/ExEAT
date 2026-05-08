@@ -6,6 +6,7 @@ export type Verdict = 'GO' | 'WAIT' | 'STOP'
 export type Stage = 'rising' | 'peak' | 'declining' | 'stable'
 
 export type ForecastPoint = { week: number; ratio: number }
+export type ItemType = 'trending' | 'classic' | 'seasonal' | 'growing' | 'fading' | 'niche' | 'stable'
 
 export type ActionPlan = {
   immediate:    string[]
@@ -13,6 +14,17 @@ export type ActionPlan = {
   midterm:      string[]
   worstCase:    string
   alternatives: string[]
+}
+
+export type TrendingItem = {
+  keyword:   string
+  delta:     number
+  current:   number
+  peak:      number
+  stage:     Stage
+  itemType:  ItemType
+  verdict:   Verdict
+  riskScore: number
 }
 
 export type TrendResult = {
@@ -29,17 +41,19 @@ export type TrendResult = {
   currentRatio: number
   avgRecent: number
   avgPrev: number
-  // 신규 분석 메트릭
+  avgAll?: number
   momentum:        number
   volatility:      number
   peakDecay:       number
   inflectionWeek:  number | null
   forecast:        ForecastPoint[]
   riskScore:       number
-  // AI 액션 플랜
-  summary?:    string
-  reasoning?:  string
-  actionPlan?: ActionPlan
+  itemType?:       ItemType
+  summary?:        string
+  reasoning?:      string
+  dataInsight?:    string
+  marketContext?:  string
+  actionPlan?:     ActionPlan
 }
 
 export type SimInput = {

@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import TrendingSection from '@/components/TrendingSection'
 import { useAnalysis } from '@/store/analysis'
 
 const EXAMPLES = [
@@ -133,6 +134,9 @@ export default function Home() {
           ↓ 더 알아보기
         </motion.div>
       </section>
+
+      {/* ── 요즘 뜨는 메뉴 ── */}
+      <TrendingSection />
 
       {/* ── 기능 카드 3개 ── */}
       <section className="max-w-3xl mx-auto w-full px-4 sm:px-6 py-16 sm:py-20">

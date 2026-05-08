@@ -39,10 +39,12 @@ def ask():
             "startDate":     trend["startDate"],
             "endDate":       trend["endDate"],
             "weeks":         trend["weeks"],
-            **lifecycle,                          # 모든 분석 메트릭 포함
+            **lifecycle,
             "verdict":       ai_result["verdict"],
             "summary":       ai_result["summary"],
             "reasoning":     ai_result["reasoning"],
+            "dataInsight":   ai_result.get("dataInsight", ""),
+            "marketContext": ai_result.get("marketContext", ""),
             "actionPlan": {
                 "immediate":    ai_result["immediate"],
                 "shortterm":    ai_result["shortterm"],

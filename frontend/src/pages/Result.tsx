@@ -38,6 +38,16 @@ const STAGE_LABEL = {
   declining: '↓ 하락기', stable: '— 안정기',
 }
 
+const ITEM_TYPE_META: Record<string, { label: string; color: string; desc: string }> = {
+  trending: { label: '🔥 폭발 상승',  color: 'var(--color-stop)', desc: '요즘 검색이 가속 중인 트렌딩 메뉴' },
+  growing:  { label: '↗ 점진 성장',   color: 'var(--color-go)',   desc: '점진적으로 우상향 중' },
+  classic:  { label: '★ 클래식',     color: 'var(--color-go)',   desc: '오래 안정적, 충성 수요 보유' },
+  seasonal: { label: '◇ 계절성',     color: 'var(--color-wait)', desc: '시기에 따라 변동이 큼' },
+  fading:   { label: '↘ 한물감',     color: 'var(--color-stop)', desc: '정점 지나고 하락 단계' },
+  niche:    { label: '◦ 틈새',       color: '#888',              desc: '검색량 작지만 안정적' },
+  stable:   { label: '— 정체',       color: '#888',              desc: '큰 방향성 없음' },
+}
+
 // ─── section wrapper ─────────────────────────────────────────────────────────
 
 function Section({ index, children }: { index: number; children: React.ReactNode }) {
@@ -98,7 +108,7 @@ export default function Result() {
     <div className="max-w-3xl mx-auto w-full px-4 sm:px-6 py-6 sm:py-10 flex flex-col gap-5 sm:gap-6">
 
       {/* 헤더 */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
         <button
           type="button"
           onClick={() => navigate('/')}
@@ -109,9 +119,23 @@ export default function Result() {
         <span className="text-muted-foreground text-sm">·</span>
         <span className="font-semibold text-sm">{decoded}</span>
         {data && !loading && (
-          <Badge variant="outline" className="font-mono text-[10px] ml-auto">
-            {STAGE_LABEL[data.stage]}
-          </Badge>
+          <div className="flex items-center gap-1.5 ml-auto flex-wrap">
+            {data.itemType && ITEM_TYPE_META[data.itemType] && (
+              <Badge
+                variant="outline"
+                className="text-[10px]"
+                style={{
+                  color: ITEM_TYPE_META[data.itemType].color,
+                  borderColor: ITEM_TYPE_META[data.itemType].color,
+                }}
+              >
+                {ITEM_TYPE_META[data.itemType].label}
+              </Badge>
+            )}
+            <Badge variant="outline" className="font-mono text-[10px]">
+              {STAGE_LABEL[data.stage]}
+            </Badge>
+          </div>
         )}
       </div>
 
@@ -134,14 +158,16 @@ export default function Result() {
             className="flex flex-col gap-5 sm:gap-6"
           >
             <VerdictHero data={data} />
-            <Section index={1}><RiskGauge data={data} /></Section>
-            <Section index={2}><MetricsRow data={data} /></Section>
-            <Section index={3}><AISummary data={data} /></Section>
-            <Section index={4}><ActionPlanCard data={data} /></Section>
-            <Section index={5}><WorstCaseCard data={data} /></Section>
-            <Section index={6}><TrendBlock data={data} /></Section>
-            <Section index={7}><RegionBlock stage={data.stage} /></Section>
-            <Section index={8}><SimulatorCTA exitWeek={data.exitWeek} navigate={navigate} /></Section>
+            <Section index={1}><ItemTypeCard data={data} /></Section>
+            <Section index={2}><RiskGauge data={data} /></Section>
+            <Section index={3}><MetricsRow data={data} /></Section>
+            <Section index={4}><DataInsightCard data={data} /></Section>
+            <Section index={5}><MarketContextCard data={data} /></Section>
+            <Section index={6}><ActionPlanCard data={data} /></Section>
+            <Section index={7}><WorstCaseCard data={data} /></Section>
+            <Section index={8}><TrendBlock data={data} /></Section>
+            <Section index={9}><RegionBlock stage={data.stage} /></Section>
+            <Section index={10}><SimulatorCTA exitWeek={data.exitWeek} navigate={navigate} /></Section>
           </motion.div>
         ) : null}
       </AnimatePresence>
@@ -296,21 +322,64 @@ function MetricsRow({ data }: { data: TrendResult }) {
   )
 }
 
-// ─── 4. AI Summary ───────────────────────────────────────────────────────────
+// ─── ItemType Card ───────────────────────────────────────────────────────────
 
-function AISummary({ data }: { data: TrendResult }) {
-  if (!data.summary && !data.reasoning) return null
+function ItemTypeCard({ data }: { data: TrendResult }) {
+  const it = data.itemType ?? 'stable'
+  const meta = ITEM_TYPE_META[it] ?? ITEM_TYPE_META.stable
+  return (
+    <div
+      className="rounded-2xl p-5 border flex items-center gap-4"
+      style={{ borderColor: meta.color, backgroundColor: meta.color + '0d' }}
+    >
+      <div
+        className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl flex items-center justify-center text-2xl sm:text-3xl shrink-0"
+        style={{ backgroundColor: meta.color + '22' }}
+      >
+        {meta.label.split(' ')[0]}
+      </div>
+      <div className="flex flex-col gap-0.5 min-w-0">
+        <span className="text-[11px] font-medium uppercase tracking-widest" style={{ color: meta.color }}>
+          메뉴 본질
+        </span>
+        <span className="font-semibold text-base">{meta.label.split(' ').slice(1).join(' ')}</span>
+        <span className="text-xs text-muted-foreground">{meta.desc}</span>
+      </div>
+    </div>
+  )
+}
+
+// ─── Data Insight ────────────────────────────────────────────────────────────
+
+function DataInsightCard({ data }: { data: TrendResult }) {
+  const insight = data.dataInsight || data.reasoning
+  if (!insight) return null
   return (
     <div className="bg-card border border-border rounded-2xl p-5">
       <div className="flex items-center gap-2 mb-3">
-        <span className="text-base">✨</span>
+        <span className="text-base">📊</span>
         <span className="text-[11px] font-medium uppercase tracking-widest text-muted-foreground">
-          AI 분석 요약
+          데이터 인사이트
         </span>
       </div>
-      <p className="text-sm whitespace-pre-line leading-relaxed">
-        {data.summary || data.reasoning}
-      </p>
+      <p className="text-sm whitespace-pre-line leading-relaxed">{insight}</p>
+    </div>
+  )
+}
+
+// ─── Market Context ──────────────────────────────────────────────────────────
+
+function MarketContextCard({ data }: { data: TrendResult }) {
+  if (!data.marketContext) return null
+  return (
+    <div className="bg-secondary/60 border border-border rounded-2xl p-5">
+      <div className="flex items-center gap-2 mb-3">
+        <span className="text-base">🌐</span>
+        <span className="text-[11px] font-medium uppercase tracking-widest text-muted-foreground">
+          시장 맥락
+        </span>
+      </div>
+      <p className="text-sm whitespace-pre-line leading-relaxed">{data.marketContext}</p>
     </div>
   )
 }
