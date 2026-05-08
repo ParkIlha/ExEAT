@@ -50,17 +50,17 @@ function Header() {
             <img src="/logo.png" alt="ExEAT" className="h-6 w-auto object-contain" />
           </NavLink>
 
-          <nav className="flex items-center gap-0.5 sm:gap-1 flex-1 justify-end md:justify-center md:absolute md:left-1/2 md:-translate-x-1/2 md:flex-none">
+          <nav className="flex items-center gap-1 flex-1 justify-end md:justify-center md:absolute md:left-1/2 md:-translate-x-1/2 md:flex-none">
             {NAV.map((n) => (
               <NavLink
                 key={n.to}
                 to={n.to}
                 end={n.exact}
                 className={({ isActive }) =>
-                  `px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors whitespace-nowrap ${
+                  `inline-flex items-center justify-center px-4 py-1.5 rounded-md text-sm font-medium border transition-colors whitespace-nowrap ${
                     isActive
-                      ? 'text-[#E8510A]'
-                      : 'text-foreground/70 hover:text-foreground hover:bg-secondary'
+                      ? 'bg-[#E8510A] text-white border-[#E8510A]'
+                      : 'bg-background text-foreground border-border hover:bg-secondary'
                   }`
                 }
               >
