@@ -253,11 +253,11 @@ def _ask_gemini(prompt: str, lifecycle: dict) -> dict:
 
     client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
-    # 모델 우선순위: 할당량 여유 있는 순서로 시도
+    # 모델 우선순위 (2026년 5월 기준 사용 가능 모델만)
     _MODELS = [
         "models/gemini-2.5-flash",
-        "models/gemini-2.0-flash",
-        "models/gemini-2.0-flash-lite",
+        "models/gemini-2.5-flash-lite-preview-06-17",
+        "gemini-2.5-flash",
     ]
     last_err: Exception = RuntimeError("no model tried")
 
@@ -269,15 +269,9 @@ def _ask_gemini(prompt: str, lifecycle: dict) -> dict:
                 config=types.GenerateContentConfig(
                     system_instruction=_SYSTEM,
                     temperature=0.7,
-                    max_output_tokens=2048,
+                    max_output_tokens=4096,
                 ),
             )
-            # 토큰 한도로 잘린 경우 감지
-            if response.candidates:
-                reason = response.candidates[0].finish_reason
-                reason_str = reason.name if hasattr(reason, "name") else str(reason)
-                if reason_str == "MAX_TOKENS":
-                    raise ValueError(f"응답이 토큰 한도로 잘림 ({model_name})")
 
             text = response.text.strip()
             parsed = _extract_json(text)
