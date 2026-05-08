@@ -141,6 +141,44 @@ def fetch_shopping_trend(keyword: str, weeks: int = 26) -> list:
         return []
 
 
+def fetch_long_range(keyword: str) -> list[dict]:
+    """
+    52주 주간 검색량 트렌드. lifecycle 본질 분류(nature: TREND/STEADY)용.
+    실패 시 빈 리스트 반환 → analyze_lifecycle이 12주로 폴백.
+
+    Returns:
+        [{"period": "YYYY-MM-DD", "ratio": float}, ...]
+    """
+    try:
+        end_date   = date.today()
+        start_date = end_date - timedelta(weeks=52)
+
+        headers = _get_headers()
+        body = {
+            "startDate": start_date.isoformat(),
+            "endDate":   end_date.isoformat(),
+            "timeUnit":  "week",
+            "keywordGroups": [
+                {"groupName": keyword, "keywords": [keyword]}
+            ],
+        }
+
+        response = requests.post(NAVER_API_URL, headers=headers, json=body, timeout=10)
+        response.raise_for_status()
+
+        payload  = response.json()
+        results  = payload.get("results", [])
+        raw_data = results[0].get("data", []) if results else []
+
+        return [
+            {"period": item["period"], "ratio": float(item["ratio"])}
+            for item in raw_data
+        ]
+    except Exception as e:
+        print(f"[naver.fetch_long_range] failed: {e}")
+        return []
+
+
 def fetch_blog_count(keyword: str) -> dict | None:
     """
     네이버 블로그 검색 결과 수를 반환한다.
