@@ -163,16 +163,13 @@ cp backend/.env.example backend/.env
 FLASK_PORT=5001
 FLASK_ENV=development
 JWT_SECRET=<로그인 토큰 서명 키>
-
-NAVER_CLIENT_ID=<네이버 개발자 센터 발급>
-NAVER_CLIENT_SECRET=<네이버 개발자 센터 발급>
 GEMINI_API_KEY=<Google AI Studio 발급 (AIzaSy...)>
+GOOGLE_CLIENT_ID=<Google OAuth Web Client ID>
 ```
 
-> **네이버 API 키 발급**: https://developers.naver.com  
-> 필요 서비스: `데이터랩(검색어트렌드)`, `쇼핑인사이트`, `검색(블로그/뉴스)`
->
 > **Gemini API 키 발급**: https://aistudio.google.com/apikey
+>
+> **Google OAuth Client ID 발급**: Google Cloud Console → OAuth Client(Web) 생성 후, `http://localhost:5173`를 Origin으로 등록
 
 ### 3. 백엔드 실행
 
@@ -268,11 +265,11 @@ ExEAT/
 │   │   ├── auth.py         # 로그인/회원가입 + 내 정보 + 분석 이력
 │   │   └── cache_admin.py  # 서버 인메모리 캐시 초기화
 │   ├── services/
-│   │   ├── naver.py        # DataLab + 쇼핑 + 블로그 + 뉴스 API
 │   │   ├── google_trend.py # pytrends 연동
 │   │   ├── lifecycle.py    # Prophet 예측 + 수명주기 분석
 │   │   ├── ai.py           # Gemini AI 분석 (다중 모델 폴백 + 캐시)
 │   │   ├── auth_service.py # SQLite 사용자/이력 저장 + 토큰 발급
+│   │   ├── synthetic_trend.py # 오프라인 데모용 합성 시계열
 │   │   ├── region.py
 │   │   └── trending.py
 │   └── data/
@@ -322,10 +319,11 @@ ExEAT/
 
 | 기능 | 상태 |
 |---|---|
-| 네이버 DataLab 검색 트렌드 | ✅ |
-| 네이버 쇼핑인사이트 | ✅ |
-| 네이버 블로그/뉴스 버즈 | ✅ |
-| 구글 트렌드 교차 검증 | ✅ |
+| 네이버 DataLab 검색 트렌드 | ❌ (제거) |
+| 네이버 쇼핑인사이트 | ❌ (제거) |
+| 네이버 블로그/뉴스 버즈 | ❌ (제거) |
+| 구글 트렌드 교차 검증 | ✅ (가능하면 사용) |
+| 구글 트렌드 불가 시 오프라인(합성) 시계열 폴백 | ✅ |
 | Prophet 4주 예측 | ✅ |
 | 수명주기 + 위험도 분석 | ✅ |
 | 메뉴 유형 7종 분류 | ✅ |
@@ -336,6 +334,63 @@ ExEAT/
 | 트렌딩 키워드 | ✅ |
 | 사용자 업종·지역 맞춤 | ✅ |
 | Fluent Design UI | ✅ |
+| 로그인/회원가입 (이메일) | ✅ |
+| 로그인 (Google Sign‑In) | ✅ |
+| 내 분석(이력) 저장/조회 (SQLite) | ✅ |
+| 캐시 초기화 (서버 + 로컬) | ✅ |
+
+---
+
+## 🧭 현재 진행상황 & 다음 해야 할 일 (handoff)
+
+다른 AI/사람이 이어서 작업할 수 있도록, **현재 구현 상태와 남은 과제**를 한 곳에 정리합니다.
+
+### 현재 상태 (2026-05-09 기준)
+- **Backend**: Flask API 정상 동작
+  - `/api/ask`, `/api/trend`는 **네이버 제거** 상태
+  - 데이터 소스는 **Google Trends(가능하면)** 사용, 불가 시 **합성(synthetic) 시계열로 폴백**하여 “검색이 막히지 않게” 처리
+- **Frontend**: Vite + React + shadcn/ui 구성, 헤더에서 **회원가입/로그인**, 로그인 후 **내 분석(이력)** 드롭다운 제공
+- **Auth/DB**: SQLite(`backend/data/exeat.db`) 사용
+  - 이메일 로그인/회원가입
+  - Google Sign‑In: 프론트에서 받은 `credential(id_token)`을 `/api/auth/google`로 보내 토큰 발급
+  - 분석 후 로그인 상태면 `/api/history`에 키워드/판정 저장 (캐시 히트여도 저장)
+
+### 실행에 필요한 환경변수 (최소)
+`backend/.env`:
+
+```env
+FLASK_PORT=5001
+JWT_SECRET=change-me-in-production
+GEMINI_API_KEY=AIzaSy...
+GOOGLE_CLIENT_ID=xxxxxxxx.apps.googleusercontent.com
+```
+
+`frontend/.env`:
+
+```env
+VITE_GOOGLE_CLIENT_ID=xxxxxxxx.apps.googleusercontent.com
+```
+
+### 구글 로그인 콘솔 설정 (로컬 개발)
+- Google Cloud Console에서 OAuth Client(Web) 생성
+- **Authorized JavaScript origins**에 `http://localhost:5173` 추가
+- 발급된 Client ID를 위 `.env` 두 곳에 동일하게 입력
+
+### 남은 과제(우선순위)
+- **P0**
+  - 배포 환경에서 Google Sign‑In 도메인/Origin/HTTPS 설정 반영
+  - `pytrends`가 막힐 때도 유저가 혼란스럽지 않도록 UI에 `source=synthetic` 배지/설명 표시
+- **P1**
+  - 이력 관리: 내 분석에서 “삭제/핀/검색” 기능
+  - 유료 전환 대비: 일일 한도/결제 플랜 설계(로그인 계정 기준)
+- **P2**
+  - 성능: 번들 크기(code-splitting), 결과 페이지 초기 로딩 최적화
+  - 관측: API latency/error 로깅(간단한 metrics)
+
+### 트러블슈팅 (자주 막히는 것)
+- **검색/분석이 아예 안 됨**: 백엔드 포트(5001) 충돌 여부 확인  
+  `lsof -nP -iTCP:5001 -sTCP:LISTEN`
+- **구글 로그인 버튼이 작동 안 함**: `GOOGLE_CLIENT_ID` / `VITE_GOOGLE_CLIENT_ID` 누락 또는 콘솔 Origin 미등록
 
 ---
 
