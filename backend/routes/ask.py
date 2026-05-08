@@ -45,6 +45,7 @@ def ask():
             "reasoning":     ai_result["reasoning"],
             "dataInsight":   ai_result.get("dataInsight", ""),
             "marketContext": ai_result.get("marketContext", ""),
+            "aiProvider":    ai_result.get("aiProvider", "unknown"),
             "actionPlan": {
                 "immediate":    ai_result["immediate"],
                 "shortterm":    ai_result["shortterm"],

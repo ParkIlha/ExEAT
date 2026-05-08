@@ -54,6 +54,7 @@ export type TrendResult = {
   dataInsight?:    string
   marketContext?:  string
   actionPlan?:     ActionPlan
+  aiProvider?:     'claude' | 'gemini' | 'algorithm' | 'unknown'
 }
 
 export type SimInput = {

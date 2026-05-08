@@ -38,6 +38,13 @@ const STAGE_LABEL = {
   declining: '↓ 하락기', stable: '— 안정기',
 }
 
+const AI_PROVIDER_META: Record<string, { label: string; color: string }> = {
+  claude:    { label: 'Claude',     color: '#cc785c' },
+  gemini:    { label: 'Gemini',     color: '#4285f4' },
+  algorithm: { label: '알고리즘',    color: '#888888' },
+  unknown:   { label: '?',          color: '#888888' },
+}
+
 const ITEM_TYPE_META: Record<string, { label: string; color: string; desc: string }> = {
   trending: { label: '🔥 폭발 상승',  color: 'var(--color-stop)', desc: '요즘 검색이 가속 중인 트렌딩 메뉴' },
   growing:  { label: '↗ 점진 성장',   color: 'var(--color-go)',   desc: '점진적으로 우상향 중' },
@@ -354,12 +361,23 @@ function ItemTypeCard({ data }: { data: TrendResult }) {
 function DataInsightCard({ data }: { data: TrendResult }) {
   const insight = data.dataInsight || data.reasoning
   if (!insight) return null
+  const provider = data.aiProvider ?? 'unknown'
+  const meta = AI_PROVIDER_META[provider]
   return (
     <div className="bg-card border border-border rounded-2xl p-5">
-      <div className="flex items-center gap-2 mb-3">
-        <span className="text-base">📊</span>
-        <span className="text-[11px] font-medium uppercase tracking-widest text-muted-foreground">
-          데이터 인사이트
+      <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
+        <div className="flex items-center gap-2">
+          <span className="text-base">📊</span>
+          <span className="text-[11px] font-medium uppercase tracking-widest text-muted-foreground">
+            데이터 인사이트
+          </span>
+        </div>
+        <span
+          className="text-[10px] font-mono px-2 py-0.5 rounded-full border"
+          style={{ color: meta.color, borderColor: meta.color + '55' }}
+          title={`${provider} 가 분석을 생성했습니다`}
+        >
+          by {meta.label}
         </span>
       </div>
       <p className="text-sm whitespace-pre-line leading-relaxed">{insight}</p>

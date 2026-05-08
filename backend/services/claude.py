@@ -191,7 +191,7 @@ def _ask_gemini(prompt: str, lifecycle: dict) -> dict:
 
 
 def ask_claude(keyword: str, lifecycle: dict, weeks: list[dict], shopping: list[dict] | None = None) -> dict:
-    """Claude → Gemini → 알고리즘 폴백 순으로 자동 선택."""
+    """Claude → Gemini → 알고리즘 폴백 순으로 자동 선택. 어떤 AI 썼는지 aiProvider 필드에 명시."""
     prompt = _build_prompt(keyword, lifecycle, weeks, shopping)
 
     claude_key = os.getenv("ANTHROPIC_API_KEY", "")
@@ -199,17 +199,29 @@ def ask_claude(keyword: str, lifecycle: dict, weeks: list[dict], shopping: list[
 
     if claude_key and not claude_key.startswith("여기에"):
         try:
-            return _ask_claude(prompt, lifecycle)
+            result = _ask_claude(prompt, lifecycle)
+            result["aiProvider"] = "claude"
+            print(f"[ai] {keyword} → claude 사용")
+            return result
         except Exception as e:
             print(f"[claude] failed: {e}")
 
-    if gemini_key and not gemini_key.startswith("여기에"):
+    # Gemini API 키 형식 검증 (AIzaSy로 시작 + 35자 이상)
+    if gemini_key and gemini_key.startswith("AIzaSy") and len(gemini_key) > 30:
         try:
-            return _ask_gemini(prompt, lifecycle)
+            result = _ask_gemini(prompt, lifecycle)
+            result["aiProvider"] = "gemini"
+            print(f"[ai] {keyword} → gemini 사용")
+            return result
         except Exception as e:
             print(f"[gemini] failed: {e}")
+    elif gemini_key and not gemini_key.startswith("여기에"):
+        print(f"[gemini] 키 형식이 잘못됐습니다 (AIzaSy로 시작해야 함): {gemini_key[:15]}...")
 
-    return _fallback_verdict(keyword, lifecycle)
+    print(f"[ai] {keyword} → 알고리즘 폴백 사용 (AI 키 없음/실패)")
+    result = _fallback_verdict(keyword, lifecycle)
+    result["aiProvider"] = "algorithm"
+    return result
 
 
 # ─── 알고리즘 폴백 ──────────────────────────────────────────────────────────
