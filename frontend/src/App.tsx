@@ -34,36 +34,20 @@ async function clearAllCaches() {
 }
 
 function Header() {
-  const [serverOk, setServerOk] = useState<boolean | null>(null)
   const [loginOpen, setLoginOpen] = useState(false)
   const [initialMode, setInitialMode] = useState<'login' | 'register'>('login')
   const email = useAuth((s) => s.email)
 
   useEffect(() => {
-    fetch('/api/health')
-      .then((r) => r.json())
-      .then((j: { ok: boolean }) => {
-        setServerOk(j.ok)
-        if (j.ok) {
-          fetch('/api/warm', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ keywords: DEMO_KEYWORDS }),
-          }).catch(() => {})
-        }
-      })
-      .catch(() => setServerOk(false))
+    fetch('/api/health').catch(() => {})
   }, [])
 
   return (
     <>
       <header className="sticky top-0 z-20 border-b border-border/40 acrylic" style={{ boxShadow: 'var(--shadow-4)' }}>
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-3">
-          <NavLink to="/" className="flex items-center gap-2 shrink-0 min-w-0">
+          <NavLink to="/" className="flex items-center shrink-0 min-w-0">
             <img src="/logo.png" alt="ExEAT" className="h-6 w-auto object-contain" />
-            <span className="text-[10px] text-muted-foreground hidden lg:inline truncate">
-              외식 트렌드 EXIT 진단
-            </span>
           </NavLink>
 
           <nav className="flex items-center gap-0.5 sm:gap-1 flex-1 justify-end md:justify-center md:absolute md:left-1/2 md:-translate-x-1/2 md:flex-none">
@@ -73,10 +57,10 @@ function Header() {
                 to={n.to}
                 end={n.exact}
                 className={({ isActive }) =>
-                  `px-2.5 sm:px-3 py-1.5 rounded-lg text-xs transition-colors whitespace-nowrap ${
+                  `px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
                     isActive
-                      ? 'bg-foreground text-background font-medium'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
+                      ? 'bg-foreground text-background'
+                      : 'text-foreground hover:bg-secondary'
                   }`
                 }
               >
@@ -86,18 +70,6 @@ function Header() {
           </nav>
 
           <div className="flex items-center gap-2 shrink-0">
-            <div className="hidden sm:flex items-center gap-1.5 text-[10px] text-muted-foreground">
-              <span
-                className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                  serverOk === null ? 'bg-muted-foreground animate-pulse'
-                  : serverOk ? 'bg-[var(--color-go)]'
-                  : 'bg-[var(--color-stop)]'
-                }`}
-              />
-              <span className="hidden md:inline">
-                {serverOk === true ? '연결됨' : serverOk === false ? '오프라인' : '…'}
-              </span>
-            </div>
             <HistoryMenu />
             {!email ? (
               <div className="flex items-center gap-1">
