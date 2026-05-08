@@ -15,6 +15,22 @@ from datetime import date, timedelta
 import requests
 
 NAVER_API_URL = "https://openapi.naver.com/v1/datalab/search"
+NAVER_SHOPPING_URL = "https://openapi.naver.com/v1/datalab/shopping/categories/keywords"
+
+
+def _get_headers() -> dict:
+    client_id = os.getenv("NAVER_CLIENT_ID")
+    client_secret = os.getenv("NAVER_CLIENT_SECRET")
+    if not client_id or not client_secret:
+        raise ValueError(
+            "NAVER_CLIENT_ID / NAVER_CLIENT_SECRET 환경변수가 설정되지 않았습니다. "
+            "backend/.env 파일을 확인하세요."
+        )
+    return {
+        "X-Naver-Client-Id": client_id,
+        "X-Naver-Client-Secret": client_secret,
+        "Content-Type": "application/json",
+    }
 
 
 def fetch_trend(keyword: str, weeks: int = 12) -> dict:
@@ -40,23 +56,10 @@ def fetch_trend(keyword: str, weeks: int = 12) -> dict:
         ValueError:        환경변수 누락
         requests.HTTPError: API 응답 오류 (401, 403, 5xx 등)
     """
-    client_id = os.getenv("NAVER_CLIENT_ID")
-    client_secret = os.getenv("NAVER_CLIENT_SECRET")
-
-    if not client_id or not client_secret:
-        raise ValueError(
-            "NAVER_CLIENT_ID / NAVER_CLIENT_SECRET 환경변수가 설정되지 않았습니다. "
-            "backend/.env 파일을 확인하세요."
-        )
-
     end_date = date.today()
     start_date = end_date - timedelta(weeks=weeks)
 
-    headers = {
-        "X-Naver-Client-Id": client_id,
-        "X-Naver-Client-Secret": client_secret,
-        "Content-Type": "application/json",
-    }
+    headers = _get_headers()
 
     body = {
         "startDate": start_date.isoformat(),
@@ -88,3 +91,49 @@ def fetch_trend(keyword: str, weeks: int = 12) -> dict:
             for item in raw_data
         ],
     }
+
+
+def fetch_shopping_trend(keyword: str, weeks: int = 12) -> list:
+    """
+    네이버 쇼핑인사이트 키워드 클릭 트렌드를 조회한다.
+    검색량(DataLab)과 달리 '구매 직전 시그널'(쇼핑 탭 클릭수)을 반영.
+
+    Returns:
+        [{"period": "YYYY-MM-DD", "ratio": float}, ...]
+        실패 시 빈 리스트 반환 (부가 데이터라 메인 흐름에 영향 없어야 함)
+    """
+    try:
+        end_date = date.today()
+        start_date = end_date - timedelta(weeks=weeks)
+
+        headers = _get_headers()
+
+        body = {
+            "startDate": start_date.isoformat(),
+            "endDate": end_date.isoformat(),
+            "timeUnit": "week",
+            "category": "50000000",  # 식품 카테고리
+            "keyword": [{"name": keyword, "param": [keyword]}],
+        }
+
+        response = requests.post(NAVER_SHOPPING_URL, headers=headers, json=body, timeout=10)
+        response.raise_for_status()
+
+        payload = response.json()
+        results = payload.get("results", [])
+        raw_data = results[0].get("data", []) if results else []
+
+        if not raw_data:
+            return []
+
+        # 최대값 기준 100으로 정규화 (검색량과 동일 스케일)
+        max_ratio = max(item.get("ratio", 0) for item in raw_data) or 1
+        return [
+            {
+                "period": item["period"],
+                "ratio": round(item.get("ratio", 0) / max_ratio * 100, 1),
+            }
+            for item in raw_data
+        ]
+    except Exception:
+        return []

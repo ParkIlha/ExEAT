@@ -7,87 +7,104 @@ import {
   Tooltip,
   ReferenceLine,
   ResponsiveContainer,
+  Legend,
 } from 'recharts'
 
 export type TrendPoint = { period: string; ratio: number }
 
 interface Props {
   data: TrendPoint[]
+  shoppingData?: TrendPoint[]
   keyword: string
-  /** STEP 6에서 채워질 — 현재 수명주기 단계 */
   stage?: 'rising' | 'peak' | 'declining' | 'stable' | null
 }
 
-// period "2024-11-04" → "11/04"
 function fmtPeriod(p: string) {
   return p.slice(5).replace('-', '/')
 }
 
-// 커스텀 툴팁
 function CustomTooltip({
   active,
   payload,
   label,
 }: {
   active?: boolean
-  payload?: { value: number }[]
+  payload?: { value: number; name: string; color: string }[]
   label?: string
 }) {
   if (!active || !payload?.length) return null
   return (
-    <div className="bg-white border border-[var(--color-border)] rounded-xl px-3 py-2 shadow-sm text-xs">
-      <p className="font-mono text-[var(--color-muted)]">{label}</p>
-      <p className="font-semibold text-[var(--color-ink)] mt-0.5">
-        검색량 <span className="font-mono">{payload[0].value}</span>
-      </p>
+    <div className="bg-white border border-[var(--color-border)] rounded-xl px-3 py-2 shadow-sm text-xs min-w-[120px]">
+      <p className="font-mono text-muted-foreground mb-1">{label}</p>
+      {payload.map((p) => (
+        <p key={p.name} className="font-medium" style={{ color: p.color }}>
+          {p.name === 'ratio' ? '검색량' : '쇼핑클릭'}{' '}
+          <span className="font-mono">{p.value}</span>
+        </p>
+      ))}
     </div>
   )
 }
 
-// 최근 N주 평균 기준선 계산
 function calcAvg(data: TrendPoint[], last = 4) {
   const slice = data.slice(-last)
   if (!slice.length) return null
   return Math.round(slice.reduce((s, d) => s + d.ratio, 0) / slice.length)
 }
 
-export default function TrendChart({ data, keyword, stage }: Props) {
+const STAGE_COLOR: Record<NonNullable<Props['stage']>, string> = {
+  rising:   'var(--color-go)',
+  peak:     'var(--color-wait)',
+  declining:'var(--color-stop)',
+  stable:   '#888',
+}
+
+export default function TrendChart({ data, shoppingData, keyword, stage }: Props) {
   if (!data.length) return null
 
   const avg = calcAvg(data)
   const maxRatio = Math.max(...data.map((d) => d.ratio))
-  const chartData = data.map((d) => ({ ...d, period: fmtPeriod(d.period) }))
+  const lineColor = stage ? STAGE_COLOR[stage] : '#888'
 
-  // 단계별 라인 색상 (STEP 6 연동 전까지는 ink 색)
-  const stageColor: Record<NonNullable<Props['stage']>, string> = {
-    rising:   'var(--color-go)',
-    peak:     'var(--color-wait)',
-    declining:'var(--color-stop)',
-    stable:   'var(--color-ink)',
-  }
-  const lineColor = stage ? stageColor[stage] : 'var(--color-ink)'
+  // 검색량 + 쇼핑 클릭 데이터 병합
+  const hasShop = shoppingData && shoppingData.length > 0
+  const chartData = data.map((d, i) => ({
+    ...d,
+    period: fmtPeriod(d.period),
+    shopping: hasShop ? (shoppingData![i]?.ratio ?? null) : undefined,
+  }))
 
   return (
     <div className="w-full">
-      {/* 범례 */}
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-xs font-mono text-[var(--color-muted)]">
+      <div className="flex items-center justify-between mb-3 flex-wrap gap-1">
+        <span className="text-xs font-mono text-muted-foreground">
           {keyword} · 최근 {data.length}주 · 최고 {maxRatio}
         </span>
-        {avg !== null && (
-          <span className="text-xs text-[var(--color-muted)]">
-            최근 4주 평균{' '}
-            <span className="font-mono font-medium text-[var(--color-ink)]">{avg}</span>
-          </span>
-        )}
+        <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
+          {avg !== null && (
+            <span>
+              4주 평균 <span className="font-mono font-medium text-foreground">{avg}</span>
+            </span>
+          )}
+          {hasShop && (
+            <span className="flex items-center gap-1">
+              <span className="w-3 h-0.5 inline-block rounded" style={{ backgroundColor: '#6366f1' }} />
+              쇼핑클릭
+            </span>
+          )}
+        </div>
       </div>
 
-      <ResponsiveContainer width="100%" height={200}>
+      <ResponsiveContainer width="100%" height={220}>
         <AreaChart data={chartData} margin={{ top: 4, right: 4, bottom: 0, left: -24 }}>
           <defs>
             <linearGradient id="trendGrad" x1="0" y1="0" x2="0" y2="1">
               <stop offset="5%"  stopColor={lineColor} stopOpacity={0.15} />
               <stop offset="95%" stopColor={lineColor} stopOpacity={0}    />
+            </linearGradient>
+            <linearGradient id="shopGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%"  stopColor="#6366f1" stopOpacity={0.1} />
+              <stop offset="95%" stopColor="#6366f1" stopOpacity={0}   />
             </linearGradient>
           </defs>
 
@@ -98,29 +115,43 @@ export default function TrendChart({ data, keyword, stage }: Props) {
           />
           <XAxis
             dataKey="period"
-            tick={{ fontSize: 10, fontFamily: 'JetBrains Mono, monospace', fill: 'var(--color-muted)' }}
+            tick={{ fontSize: 10, fontFamily: 'JetBrains Mono, monospace', fill: 'var(--color-muted-foreground)' }}
             tickLine={false}
             axisLine={false}
             interval="preserveStartEnd"
           />
           <YAxis
             domain={[0, 100]}
-            tick={{ fontSize: 10, fontFamily: 'JetBrains Mono, monospace', fill: 'var(--color-muted)' }}
+            tick={{ fontSize: 10, fontFamily: 'JetBrains Mono, monospace', fill: 'var(--color-muted-foreground)' }}
             tickLine={false}
             axisLine={false}
           />
           <Tooltip content={<CustomTooltip />} />
 
-          {/* 4주 평균 기준선 */}
           {avg !== null && (
             <ReferenceLine
               y={avg}
-              stroke="var(--color-muted)"
+              stroke="var(--color-muted-foreground)"
               strokeDasharray="4 4"
               strokeWidth={1}
             />
           )}
 
+          {/* 쇼핑 클릭 (보조선) */}
+          {hasShop && (
+            <Area
+              type="monotone"
+              dataKey="shopping"
+              stroke="#6366f1"
+              strokeWidth={1.5}
+              strokeDasharray="4 3"
+              fill="url(#shopGrad)"
+              dot={false}
+              activeDot={{ r: 3, fill: '#6366f1', strokeWidth: 0 }}
+            />
+          )}
+
+          {/* 검색량 (주선) */}
           <Area
             type="monotone"
             dataKey="ratio"

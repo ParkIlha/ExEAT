@@ -8,7 +8,7 @@ F9 메인 진입점.
 import requests
 from flask import Blueprint, request, jsonify
 
-from services.naver import fetch_trend
+from services.naver import fetch_trend, fetch_shopping_trend
 from services.lifecycle import analyze_lifecycle
 from services.claude import ask_claude
 
@@ -24,8 +24,9 @@ def ask():
         return jsonify({"error": "keyword 가 필요합니다."}), 400
 
     try:
-        # 1. 네이버 DataLab 트렌드
+        # 1. 네이버 DataLab 트렌드 + 쇼핑인사이트 (병렬 느낌으로 순차 호출)
         trend = fetch_trend(keyword)
+        shopping_weeks = fetch_shopping_trend(keyword)  # 실패 시 [] 반환
 
         # 2. 수명주기 분석
         lifecycle = analyze_lifecycle(trend["weeks"])
@@ -33,15 +34,19 @@ def ask():
         # 3. Claude AI 종합 판정
         ai_result = ask_claude(keyword, lifecycle, trend["weeks"])
 
-        return jsonify({
-            "keyword":   keyword,
-            "startDate": trend["startDate"],
-            "endDate":   trend["endDate"],
-            "weeks":     trend["weeks"],
+        resp = {
+            "keyword":       keyword,
+            "startDate":     trend["startDate"],
+            "endDate":       trend["endDate"],
+            "weeks":         trend["weeks"],
             **lifecycle,
-            "reasoning": ai_result["reasoning"],
-            "verdict":   ai_result["verdict"],   # AI 판정으로 override
-        })
+            "reasoning":     ai_result["reasoning"],
+            "verdict":       ai_result["verdict"],
+        }
+        if shopping_weeks:
+            resp["shoppingWeeks"] = shopping_weeks
+
+        return jsonify(resp)
 
     except ValueError as e:
         return jsonify({"error": str(e)}), 500

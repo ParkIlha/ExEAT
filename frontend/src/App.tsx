@@ -1,12 +1,16 @@
 import { useEffect, useState } from 'react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Toaster } from '@/components/ui/sonner'
 import TrendChart from '@/components/TrendChart'
 import CaseLibrary from '@/components/CaseLibrary'
 import Simulator from '@/components/Simulator'
+import RegionPanel from '@/components/RegionPanel'
 
 // ─── types ────────────────────────────────────────────────────────────────────
 
@@ -16,6 +20,7 @@ type TrendResult = {
   startDate: string
   endDate: string
   weeks: TrendPoint[]
+  shoppingWeeks?: TrendPoint[]
   stage: Stage
   verdict: Verdict
   exitWeek: number | null
@@ -24,7 +29,7 @@ type TrendResult = {
   currentRatio: number
   avgRecent: number
   avgPrev: number
-  reasoning?: string   // Claude AI 판정 근거 (STEP 9)
+  reasoning?: string
 }
 type Verdict = 'GO' | 'WAIT' | 'STOP'
 type Stage = 'rising' | 'peak' | 'declining' | 'stable'
@@ -37,7 +42,6 @@ const VERDICT_CONFIG = {
     desc: '검색 트렌드가 상승 중입니다. 경쟁자보다 먼저 선점하세요.',
     dot: 'bg-[var(--color-go)]',
     badge: 'bg-[var(--color-go-bg)] text-[var(--color-go)] border-[var(--color-go)]',
-    bar: 'bg-[var(--color-go)]',
   },
   WAIT: {
     label: 'WAIT',
@@ -45,7 +49,6 @@ const VERDICT_CONFIG = {
     desc: '트렌드가 정점 또는 안정기입니다. 수익성을 먼저 검토하세요.',
     dot: 'bg-[var(--color-wait)]',
     badge: 'bg-[var(--color-wait-bg)] text-[var(--color-wait)] border-[var(--color-wait)]',
-    bar: 'bg-[var(--color-wait)]',
   },
   STOP: {
     label: 'STOP',
@@ -53,8 +56,40 @@ const VERDICT_CONFIG = {
     desc: '검색 트렌드가 하락 중입니다. 재고 소진 계획을 먼저 세우세요.',
     dot: 'bg-[var(--color-stop)]',
     badge: 'bg-[var(--color-stop-bg)] text-[var(--color-stop)] border-[var(--color-stop)]',
-    bar: 'bg-[var(--color-stop)]',
   },
+}
+
+// ─── skeleton blocks ──────────────────────────────────────────────────────────
+
+function VerdictSkeleton() {
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center gap-3">
+        <Skeleton className="h-9 w-20 rounded-lg" />
+        <Skeleton className="h-5 w-36" />
+      </div>
+      <Skeleton className="h-px w-full" />
+      <Skeleton className="h-4 w-3/4" />
+      <Skeleton className="h-24 w-full rounded-xl" />
+      <div className="grid grid-cols-3 gap-2">
+        <Skeleton className="h-14 rounded-lg" />
+        <Skeleton className="h-14 rounded-lg" />
+        <Skeleton className="h-14 rounded-lg" />
+      </div>
+    </div>
+  )
+}
+
+function ChartSkeleton() {
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex justify-between">
+        <Skeleton className="h-4 w-40" />
+        <Skeleton className="h-4 w-24" />
+      </div>
+      <Skeleton className="h-[200px] w-full rounded-xl" />
+    </div>
+  )
 }
 
 // ─── app ──────────────────────────────────────────────────────────────────────
@@ -62,11 +97,10 @@ const VERDICT_CONFIG = {
 export default function App() {
   const [serverOk, setServerOk] = useState<boolean | null>(null)
   const [keyword, setKeyword] = useState('')
-  const [trend, setTrend]   = useState<TrendResult | null>(null)
-  const [stage, setStage]   = useState<Stage | null>(null)
+  const [trend, setTrend]     = useState<TrendResult | null>(null)
+  const [stage, setStage]     = useState<Stage | null>(null)
   const [verdict, setVerdict] = useState<Verdict | null>(null)
   const [loading, setLoading] = useState(false)
-  const [error, setError]   = useState<string | null>(null)
 
   useEffect(() => {
     fetch('/api/health')
@@ -79,7 +113,6 @@ export default function App() {
     const kw = keyword.trim()
     if (!kw) return
     setLoading(true)
-    setError(null)
     setTrend(null)
     setVerdict(null)
     setStage(null)
@@ -102,7 +135,10 @@ export default function App() {
       setStage(data.stage ?? null)
       setVerdict(data.verdict ?? null)
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e))
+      toast.error(e instanceof Error ? e.message : String(e), {
+        description: '키워드를 다시 확인하거나 잠시 후 시도해주세요.',
+        duration: 5000,
+      })
     } finally {
       setLoading(false)
     }
@@ -112,36 +148,39 @@ export default function App() {
 
   return (
     <div className="min-h-svh flex flex-col bg-background">
+      <Toaster position="top-center" />
 
       {/* ── header ── */}
       <header className="sticky top-0 z-10 border-b border-border bg-background/80 backdrop-blur-sm">
-        <div className="max-w-4xl mx-auto px-4 h-14 flex items-center justify-between">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
           <div className="flex items-baseline gap-2">
-            <span className="font-semibold text-lg tracking-tight">ExEAT</span>
+            <span className="font-semibold text-base tracking-tight">ExEAT</span>
             <span className="text-xs text-muted-foreground hidden sm:block">
-              트렌드 EXIT 타이밍 진단
+              카페 트렌드 EXIT 타이밍 진단
             </span>
           </div>
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <span className={`w-1.5 h-1.5 rounded-full ${
-              serverOk === null ? 'bg-muted-foreground' :
+              serverOk === null ? 'bg-muted-foreground animate-pulse' :
               serverOk ? 'bg-[var(--color-go)]' : 'bg-[var(--color-stop)]'
             }`} />
-            {serverOk === true ? 'API 연결됨' : serverOk === false ? 'API 오프라인' : '확인 중'}
+            <span className="hidden xs:inline">
+              {serverOk === true ? 'API 연결됨' : serverOk === false ? 'API 오프라인' : '확인 중'}
+            </span>
           </div>
         </div>
       </header>
 
       {/* ── main ── */}
-      <main className="flex-1 max-w-4xl mx-auto w-full px-4 py-8 flex flex-col gap-5">
+      <main className="flex-1 max-w-3xl mx-auto w-full px-4 sm:px-6 py-6 sm:py-8 flex flex-col gap-4 sm:gap-5">
 
         {/* F9 — AskBox */}
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base font-semibold">
+            <CardTitle className="text-sm sm:text-base font-semibold leading-snug">
               이 메뉴, 지금 카페에 들어가도 될까요?
             </CardTitle>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-xs sm:text-sm text-muted-foreground">
               키워드를 입력하면 최근 12주 네이버 검색 트렌드로 진입 타이밍을 분석합니다.
             </p>
           </CardHeader>
@@ -152,37 +191,50 @@ export default function App() {
                 value={keyword}
                 onChange={(e) => setKeyword(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && onAnalyze()}
-                className="flex-1"
+                className="flex-1 text-sm"
               />
               <Button
                 onClick={onAnalyze}
                 disabled={loading || !keyword.trim()}
+                className="shrink-0"
               >
                 {loading ? '분석 중…' : '분석하기'}
               </Button>
             </div>
-            {error && (
-              <p className="mt-2 text-xs text-[var(--color-stop)]">{error}</p>
-            )}
+            {/* 예시 키워드 빠른 선택 */}
+            <div className="flex flex-wrap gap-1.5 mt-3">
+              {['두바이초콜릿', '흑당버블티', '탕후루', '크로플', '마라탕'].map((kw) => (
+                <button
+                  key={kw}
+                  type="button"
+                  onClick={() => { setKeyword(kw); }}
+                  className="text-[11px] px-2 py-0.5 rounded-full border border-border text-muted-foreground hover:border-foreground hover:text-foreground transition-colors"
+                >
+                  {kw}
+                </button>
+              ))}
+            </div>
           </CardContent>
         </Card>
 
         {/* F1/F2 — VerdictCard */}
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base font-semibold">진입 판정</CardTitle>
+            <CardTitle className="text-sm sm:text-base font-semibold">진입 판정</CardTitle>
           </CardHeader>
           <CardContent>
-            {vc ? (
+            {loading ? (
+              <VerdictSkeleton />
+            ) : vc ? (
               <div className="flex flex-col gap-4">
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 flex-wrap">
                   <Badge
                     variant="outline"
-                    className={`text-lg font-mono font-bold px-4 py-1.5 ${vc.badge}`}
+                    className={`text-base sm:text-lg font-mono font-bold px-4 py-1.5 ${vc.badge}`}
                   >
                     {vc.label}
                   </Badge>
-                  <span className="font-medium">{vc.sub}</span>
+                  <span className="font-medium text-sm sm:text-base">{vc.sub}</span>
                 </div>
                 <Separator />
                 <p className="text-sm text-muted-foreground">{vc.desc}</p>
@@ -194,19 +246,19 @@ export default function App() {
                 {trend?.reasoning && (
                   <>
                     <Separator />
-                    <div className="bg-secondary rounded-xl p-4">
-                      <p className="text-xs text-muted-foreground mb-1 font-medium">AI 분석</p>
-                      <p className="text-sm whitespace-pre-line leading-relaxed">
+                    <div className="bg-secondary rounded-xl p-3 sm:p-4">
+                      <p className="text-[10px] sm:text-xs text-muted-foreground mb-1.5 font-medium uppercase tracking-wide">AI 분석</p>
+                      <p className="text-xs sm:text-sm whitespace-pre-line leading-relaxed">
                         {trend.reasoning}
                       </p>
                     </div>
                   </>
                 )}
                 <div className="grid grid-cols-3 gap-2 text-xs">
-                  {((['GO', 'WAIT', 'STOP'] as Verdict[]).map((v) => (
+                  {(['GO', 'WAIT', 'STOP'] as Verdict[]).map((v) => (
                     <div
                       key={v}
-                      className={`rounded-lg px-3 py-2 text-center border ${
+                      className={`rounded-lg px-2 sm:px-3 py-2 text-center border transition-all ${
                         verdict === v
                           ? VERDICT_CONFIG[v].badge + ' font-semibold'
                           : 'border-border text-muted-foreground'
@@ -215,7 +267,7 @@ export default function App() {
                       <div className={`w-2 h-2 rounded-full mx-auto mb-1 ${VERDICT_CONFIG[v].dot} ${verdict !== v ? 'opacity-30' : ''}`} />
                       {v}
                     </div>
-                  )))}
+                  ))}
                 </div>
               </div>
             ) : (
@@ -226,11 +278,83 @@ export default function App() {
           </CardContent>
         </Card>
 
+        {/* F3 — TrendChart */}
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm sm:text-base font-semibold">검색량 트렌드</CardTitle>
+              {trend && stage && !loading && (
+                <Badge variant="outline" className="font-mono text-xs">
+                  {stage === 'rising'   ? '↑ 상승기' :
+                   stage === 'peak'     ? '▲ 정점' :
+                   stage === 'declining'? '↓ 하락기' : '— 안정기'}
+                </Badge>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <ChartSkeleton />
+            ) : trend ? (
+              <TrendChart
+                data={trend.weeks}
+                shoppingData={trend.shoppingWeeks}
+                keyword={trend.keyword}
+                stage={stage}
+              />
+            ) : (
+              <div className="h-[200px] flex items-center justify-center">
+                <p className="text-sm text-muted-foreground text-center px-4">
+                  키워드를 분석하면 12주 그래프가 표시됩니다.
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* F7 — CaseLibrary (분석 후에만 노출) */}
+        {(loading || trend) && (
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm sm:text-base font-semibold">유사 패턴 과거 사례</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <div className="flex flex-col gap-3">
+                  <Skeleton className="h-16 w-full rounded-xl" />
+                  <Skeleton className="h-16 w-full rounded-xl" />
+                </div>
+              ) : trend ? (
+                <CaseLibrary pattern={
+                  trend.stage === 'declining' || trend.stage === 'peak'
+                    ? 'sudden_rise_fall'
+                    : null
+                } />
+              ) : null}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* F4 — RegionPanel (분석 후에만) */}
+        {(loading || trend) && (
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm sm:text-base font-semibold">지역 적합도</CardTitle>
+              <p className="text-xs sm:text-sm text-muted-foreground">
+                지역별 인구 구조와 트렌드 단계를 결합해 도입 적합도를 분석합니다.
+              </p>
+            </CardHeader>
+            <CardContent>
+              <RegionPanel stage={stage} />
+            </CardContent>
+          </Card>
+        )}
+
         {/* F6 — Simulator */}
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base font-semibold">손익분기 시뮬레이터</CardTitle>
-            <p className="text-sm text-muted-foreground">
+            <CardTitle className="text-sm sm:text-base font-semibold">손익분기 시뮬레이터</CardTitle>
+            <p className="text-xs sm:text-sm text-muted-foreground">
               재료비와 판매가를 입력하면 손익분기 시점과 EXIT 전 예상 수익을 계산합니다.
             </p>
           </CardHeader>
@@ -239,53 +363,14 @@ export default function App() {
           </CardContent>
         </Card>
 
-        {/* F7 — CaseLibrary */}
-        {trend && (
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base font-semibold">유사 패턴 과거 사례</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <CaseLibrary pattern={trend.stage === 'declining' || trend.stage === 'peak' ? 'sudden_rise_fall' : null} />
-            </CardContent>
-          </Card>
-        )}
-
-        {/* F3 — TrendChart */}
-        <Card>
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-base font-semibold">검색량 트렌드</CardTitle>
-              {trend && stage && (
-                <Badge variant="outline" className="font-mono text-xs">
-                  {stage === 'rising' ? '↑ 상승기' :
-                   stage === 'peak'   ? '▲ 정점' :
-                   stage === 'declining' ? '↓ 하락기' : '— 안정기'}
-                </Badge>
-              )}
-            </div>
-          </CardHeader>
-          <CardContent>
-            {trend ? (
-              <TrendChart data={trend.weeks} keyword={trend.keyword} stage={stage} />
-            ) : (
-              <div className="h-[200px] flex items-center justify-center">
-                <p className="text-sm text-muted-foreground">
-                  {loading ? '데이터를 불러오는 중…' : '키워드를 분석하면 12주 그래프가 표시됩니다.'}
-                </p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
       </main>
 
       {/* ── footer ── */}
       <footer className="border-t border-border px-4 py-4 text-xs text-muted-foreground text-center">
-        ExEAT · 트렌드 재료의 EXIT 타이밍을 알려드립니다 ·{' '}
-        <span className="font-mono">
-          {trend ? `${trend.startDate} ~ ${trend.endDate}` : '데이터 없음'}
-        </span>
+        ExEAT · 트렌드 재료의 EXIT 타이밍을 알려드립니다
+        {trend && (
+          <> · <span className="font-mono">{trend.startDate} ~ {trend.endDate}</span></>
+        )}
       </footer>
     </div>
   )
