@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import TrendChart from '@/components/TrendChart'
 import CaseLibrary from '@/components/CaseLibrary'
+import Simulator from '@/components/Simulator'
 
 // ─── types ────────────────────────────────────────────────────────────────────
 
@@ -222,6 +223,19 @@ export default function App() {
                 키워드를 분석하면 GO / WAIT / STOP 판정이 표시됩니다.
               </p>
             )}
+          </CardContent>
+        </Card>
+
+        {/* F6 — Simulator */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base font-semibold">손익분기 시뮬레이터</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              재료비와 판매가를 입력하면 손익분기 시점과 EXIT 전 예상 수익을 계산합니다.
+            </p>
+          </CardHeader>
+          <CardContent>
+            <Simulator defaultExitWeek={trend?.exitWeek ?? null} />
           </CardContent>
         </Card>
 
