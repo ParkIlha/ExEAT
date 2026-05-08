@@ -11,7 +11,6 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import TrendChart from '@/components/TrendChart'
-import RecommendedRegions from '@/components/RecommendedRegions'
 import CountUp from '@/components/CountUp'
 import ROICard from '@/components/ROICard'
 import AnalysisChat from '@/components/AnalysisChat'
@@ -324,7 +323,6 @@ export default function Result() {
                       <Section index={0}><SignalCard data={data} /></Section>
                       <Section index={1}><TrendBlock data={data} /></Section>
                       <Section index={2}><MetricsRow data={data} /></Section>
-                      <Section index={3}><RegionBlock stage={data.stage} /></Section>
                     </motion.div>
                   )}
                   {activeTab === 'ai' && (
@@ -1120,21 +1118,6 @@ function TrendBlock({ data }: { data: TrendResult }) {
   )
 }
 
-// ─── 8. Region ───────────────────────────────────────────────────────────────
-
-function RegionBlock({ stage }: { stage: TrendResult['stage'] }) {
-  return (
-    <div className="fluent-card rounded-2xl p-5">
-      <div className="mb-4">
-        <h3 className="font-semibold text-sm">추천 지역 Top 5</h3>
-        <p className="text-xs text-muted-foreground mt-0.5">
-          트렌드 단계 + 인구 구조 기반으로 도입에 유리한 지역을 추천합니다
-        </p>
-      </div>
-      <RecommendedRegions stage={stage} />
-    </div>
-  )
-}
 
 // ─── 9. Simulator CTA ────────────────────────────────────────────────────────
 

@@ -72,25 +72,25 @@ export default function AnalysisChat({ data }: Props) {
   }
 
   return (
-    <div className="fluent-card rounded-2xl overflow-hidden">
+    <div className="fluent-card rounded-2xl overflow-hidden border-2 border-border">
       {/* 헤더 */}
-      <div className="px-5 py-4 border-b border-border flex items-center gap-2.5">
-        <div className="w-7 h-7 rounded-lg bg-foreground/5 flex items-center justify-center">
-          <Sparkles className="w-3.5 h-3.5 text-foreground" strokeWidth={2} />
+      <div className="px-5 py-4 border-b border-border flex items-center gap-3 bg-foreground/[0.02]">
+        <div className="w-9 h-9 rounded-xl bg-[#E8510A]/10 flex items-center justify-center shrink-0">
+          <Sparkles className="w-4.5 h-4.5 text-[#E8510A]" strokeWidth={2} />
         </div>
         <div>
-          <p className="text-sm font-semibold">AI에게 더 물어보기</p>
-          <p className="text-[10px] text-muted-foreground">
-            {data.keyword} 분석을 바탕으로 궁금한 것을 질문하세요
+          <p className="text-base font-semibold">AI 컨설턴트에게 물어보기</p>
+          <p className="text-xs text-muted-foreground">
+            {data.keyword} 분석 결과를 바탕으로 창업·운영에 관한 무엇이든 질문하세요
           </p>
         </div>
-        <span className="ml-auto text-[10px] font-mono text-muted-foreground px-2 py-0.5 border border-border rounded-full">
+        <span className="ml-auto text-[10px] font-mono text-muted-foreground px-2 py-1 border border-border rounded-full shrink-0">
           Gemini
         </span>
       </div>
 
       {/* 대화 영역 */}
-      <div className="px-4 py-4 flex flex-col gap-3 max-h-80 overflow-y-auto">
+      <div className="px-4 py-4 flex flex-col gap-3 min-h-48 max-h-[480px] overflow-y-auto">
         {messages.length === 0 && (
           <div className="text-center py-4">
             <Bot className="w-8 h-8 text-muted-foreground/40 mx-auto mb-2" strokeWidth={1.5} />
@@ -158,14 +158,14 @@ export default function AnalysisChat({ data }: Props) {
 
       {/* 빠른 질문 버튼 (첫 질문 전에만 표시) */}
       {messages.length === 0 && (
-        <div className="px-4 pb-3 flex flex-wrap gap-1.5">
+        <div className="px-4 pb-3 flex flex-wrap gap-2">
           {QUICK_QUESTIONS.map(q => (
             <button
               key={q}
               type="button"
               onClick={() => send(q)}
               disabled={loading}
-              className="text-[11px] px-2.5 py-1.5 rounded-full border border-border hover:bg-secondary transition-colors text-muted-foreground hover:text-foreground disabled:opacity-40"
+              className="text-xs px-3 py-2 rounded-full border border-border hover:border-[#E8510A] hover:text-[#E8510A] transition-colors text-muted-foreground disabled:opacity-40"
             >
               {q}
             </button>
@@ -180,17 +180,17 @@ export default function AnalysisChat({ data }: Props) {
           value={input}
           onChange={e => setInput(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && !e.shiftKey && send()}
-          placeholder="궁금한 것을 물어보세요…"
+          placeholder="재료비, 수익성, 경쟁 전략 등 무엇이든 물어보세요…"
           disabled={loading}
-          className="flex-1 rounded-xl border border-border bg-background px-3.5 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-foreground/20 disabled:opacity-50"
+          className="flex-1 rounded-xl border border-border bg-background px-4 py-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#E8510A]/30 focus:border-[#E8510A]/50 disabled:opacity-50"
         />
         <Button
           size="sm"
           onClick={() => send()}
           disabled={!input.trim() || loading}
-          className="shrink-0 rounded-xl h-10 w-10 p-0"
+          className="shrink-0 rounded-xl h-11 w-11 p-0 bg-[#E8510A] hover:bg-[#d44800]"
         >
-          <Send className="w-3.5 h-3.5" />
+          <Send className="w-4 h-4" />
         </Button>
       </div>
     </div>
