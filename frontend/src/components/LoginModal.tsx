@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -8,9 +8,10 @@ import { useAuth } from '@/store/auth'
 interface Props {
   open: boolean
   onClose: () => void
+  initialMode?: 'login' | 'register'
 }
 
-export default function LoginModal({ open, onClose }: Props) {
+export default function LoginModal({ open, onClose, initialMode = 'login' }: Props) {
   const setSession = useAuth((s) => s.setSession)
   const [mode, setMode] = useState<'login' | 'register'>('login')
   const [email, setEmail] = useState('')
@@ -19,6 +20,12 @@ export default function LoginModal({ open, onClose }: Props) {
   const [error, setError] = useState('')
 
   if (!open) return null
+
+  useEffect(() => {
+    setMode(initialMode)
+    setError('')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open])
 
   async function submit() {
     setError('')
@@ -53,19 +60,42 @@ export default function LoginModal({ open, onClose }: Props) {
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/30 backdrop-blur-sm"
         onClick={onClose}
       />
       <motion.div
         initial={{ opacity: 0, scale: 0.96 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="relative z-10 w-full max-w-md rounded-2xl border border-border bg-background p-6 shadow-xl"
+        className="relative z-10 w-full max-w-md rounded-2xl border border-border bg-background p-6 fluent-card-elevated"
       >
         <div className="flex items-center justify-between mb-5">
           <h2 className="font-semibold text-lg">{mode === 'login' ? '로그인' : '회원가입'}</h2>
           <button type="button" onClick={onClose} className="p-1 rounded-lg hover:bg-secondary text-muted-foreground">
             <X className="w-5 h-5" />
           </button>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2 mb-4">
+          <Button
+            variant="secondary"
+            className="w-full justify-center"
+            onClick={() => { window.location.href = `/api/auth/kakao/start?next=${encodeURIComponent(window.location.origin + '/auth/callback')}` }}
+          >
+            카카오로 계속
+          </Button>
+          <Button
+            variant="secondary"
+            className="w-full justify-center"
+            onClick={() => { window.location.href = `/api/auth/naver/start?next=${encodeURIComponent(window.location.origin + '/auth/callback')}` }}
+          >
+            네이버로 계속
+          </Button>
+        </div>
+
+        <div className="flex items-center gap-3 mb-4">
+          <div className="h-px flex-1 bg-border" />
+          <span className="text-[10px] text-muted-foreground">또는 이메일</span>
+          <div className="h-px flex-1 bg-border" />
         </div>
 
         <div className="flex gap-1 p-1 rounded-xl bg-secondary mb-4">

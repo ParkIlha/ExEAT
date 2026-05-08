@@ -10,6 +10,7 @@ import os
 import re
 import sqlite3
 import time
+import secrets
 
 from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -43,6 +44,14 @@ def init_db() -> None:
               email TEXT UNIQUE NOT NULL COLLATE NOCASE,
               password_hash TEXT NOT NULL,
               created_at REAL NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS oauth_identities (
+              provider TEXT NOT NULL,
+              provider_user_id TEXT NOT NULL,
+              user_id INTEGER NOT NULL,
+              created_at REAL NOT NULL,
+              PRIMARY KEY (provider, provider_user_id),
+              FOREIGN KEY(user_id) REFERENCES users(id)
             );
             CREATE TABLE IF NOT EXISTS query_history (
               user_id INTEGER NOT NULL,
@@ -105,6 +114,83 @@ def get_user_email(user_id: int) -> str | None:
     with _conn() as db:
         row = db.execute("SELECT email FROM users WHERE id = ?", (user_id,)).fetchone()
     return row["email"] if row else None
+
+
+def make_oauth_state(next_url: str | None) -> str:
+    """OAuth callback에 사용할 signed state (10분 유효)."""
+    return URLSafeTimedSerializer(_secret(), salt="exeat-oauth-state").dumps(
+        {"next": (next_url or "").strip()[:400]}
+    )
+
+
+def verify_oauth_state(state: str | None, max_age_sec: int = 600) -> str:
+    if not state:
+        return ""
+    try:
+        data = URLSafeTimedSerializer(_secret(), salt="exeat-oauth-state").loads(
+            state, max_age=max_age_sec
+        )
+        return str(data.get("next") or "")
+    except Exception:
+        return ""
+
+
+def _find_user_by_email(email: str) -> int | None:
+    em = (email or "").strip().lower()
+    if not em:
+        return None
+    with _conn() as db:
+        row = db.execute("SELECT id FROM users WHERE email = ?", (em,)).fetchone()
+    return int(row["id"]) if row else None
+
+
+def _create_user(email: str) -> int:
+    em = (email or "").strip().lower()
+    now = time.time()
+    # 소셜 로그인 계정은 패스워드를 사용하지 않지만, 스키마 제약으로 hash는 필요
+    pw_hash = generate_password_hash(secrets.token_urlsafe(24))
+    with _conn() as db:
+        cur = db.execute(
+            "INSERT INTO users (email, password_hash, created_at) VALUES (?, ?, ?)",
+            (em, pw_hash, now),
+        )
+        return int(cur.lastrowid)
+
+
+def upsert_oauth_user(provider: str, provider_user_id: str, email: str | None) -> int:
+    """
+    provider + provider_user_id 로 유저를 찾거나 생성한다.
+    이메일이 있으면 기존 이메일 계정과 매칭해 연결한다.
+    """
+    provider = (provider or "").strip().lower()
+    pid = (provider_user_id or "").strip()
+    if not provider or not pid:
+        raise ValueError("provider/provider_user_id required")
+
+    with _conn() as db:
+        row = db.execute(
+            "SELECT user_id FROM oauth_identities WHERE provider = ? AND provider_user_id = ?",
+            (provider, pid),
+        ).fetchone()
+        if row:
+            return int(row["user_id"])
+
+    em = (email or "").strip().lower()
+    if em and not _EMAIL_RE.match(em):
+        em = ""
+    if not em:
+        em = f"{provider}_{pid}@oauth.local"
+
+    uid = _find_user_by_email(em)
+    if not uid:
+        uid = _create_user(em)
+
+    with _conn() as db:
+        db.execute(
+            "INSERT OR IGNORE INTO oauth_identities (provider, provider_user_id, user_id, created_at) VALUES (?, ?, ?, ?)",
+            (provider, pid, uid, time.time()),
+        )
+    return uid
 
 
 def record_history(user_id: int, keyword: str, verdict: str | None) -> None:

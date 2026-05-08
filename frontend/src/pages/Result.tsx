@@ -212,7 +212,11 @@ export default function Result() {
   useEffect(() => {
     if (!keyword) return
     if (cached) {
-      setData(cached); setLoading(false); return
+      setData(cached)
+      setLoading(false)
+      // 캐시 히트 시에도 "내 분석" 이력은 남겨야 함
+      recordSearch(decoded, cached.verdict)
+      return
     }
     setLoading(true); setData(null)
 

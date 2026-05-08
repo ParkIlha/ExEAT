@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
-  BrowserRouter, Routes, Route, NavLink, useLocation,
+  BrowserRouter, Routes, Route, NavLink, useLocation, useNavigate,
 } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Toaster } from '@/components/ui/sonner'
@@ -10,6 +10,7 @@ import Home from '@/pages/Home'
 import Result from '@/pages/Result'
 import Simulate from '@/pages/Simulate'
 import { useAuth } from '@/store/auth'
+import { Button } from '@/components/ui/button'
 
 const NAV = [
   { to: '/', label: '홈', exact: true },
@@ -36,6 +37,7 @@ async function clearAllCaches() {
 function Header() {
   const [serverOk, setServerOk] = useState<boolean | null>(null)
   const [loginOpen, setLoginOpen] = useState(false)
+  const [initialMode, setInitialMode] = useState<'login' | 'register'>('login')
   const email = useAuth((s) => s.email)
 
   useEffect(() => {
@@ -56,12 +58,12 @@ function Header() {
 
   return (
     <>
-      <header className="sticky top-0 z-20 border-b border-white/10 bg-[#0a0a0a] text-white">
+      <header className="sticky top-0 z-20 border-b border-border/40 acrylic" style={{ boxShadow: 'var(--shadow-4)' }}>
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-3">
           <NavLink to="/" className="flex items-center gap-2 shrink-0 min-w-0">
             <img src="/logo.png" alt="ExEAT" className="w-7 h-7 object-contain" />
             <span className="font-semibold text-sm tracking-tight truncate">ExEAT</span>
-            <span className="text-[10px] text-white/45 hidden lg:inline truncate">
+            <span className="text-[10px] text-muted-foreground hidden lg:inline truncate">
               외식 트렌드 EXIT 진단
             </span>
           </NavLink>
@@ -75,8 +77,8 @@ function Header() {
                 className={({ isActive }) =>
                   `px-2.5 sm:px-3 py-1.5 rounded-lg text-xs transition-colors whitespace-nowrap ${
                     isActive
-                      ? 'bg-white/12 text-white font-medium'
-                      : 'text-white/60 hover:text-white hover:bg-white/8'
+                      ? 'bg-foreground text-background font-medium'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
                   }`
                 }
               >
@@ -86,12 +88,12 @@ function Header() {
           </nav>
 
           <div className="flex items-center gap-2 shrink-0">
-            <div className="hidden sm:flex items-center gap-1.5 text-[10px] text-white/45">
+            <div className="hidden sm:flex items-center gap-1.5 text-[10px] text-muted-foreground">
               <span
                 className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                  serverOk === null ? 'bg-white/35 animate-pulse'
-                  : serverOk ? 'bg-emerald-400'
-                  : 'bg-red-400'
+                  serverOk === null ? 'bg-muted-foreground animate-pulse'
+                  : serverOk ? 'bg-[var(--color-go)]'
+                  : 'bg-[var(--color-stop)]'
                 }`}
               />
               <span className="hidden md:inline">
@@ -100,18 +102,26 @@ function Header() {
             </div>
             <HistoryMenu />
             {!email ? (
-              <button
-                type="button"
-                onClick={() => setLoginOpen(true)}
-                className="text-xs font-medium px-3 py-1.5 rounded-lg bg-white text-neutral-950 hover:bg-white/90 transition-colors"
-              >
-                로그인
-              </button>
+              <div className="flex items-center gap-1">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => { setInitialMode('register'); setLoginOpen(true) }}
+                >
+                  회원가입
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() => { setInitialMode('login'); setLoginOpen(true) }}
+                >
+                  로그인
+                </Button>
+              </div>
             ) : null}
           </div>
         </div>
       </header>
-      <LoginModal open={loginOpen} onClose={() => setLoginOpen(false)} />
+      <LoginModal open={loginOpen} initialMode={initialMode} onClose={() => setLoginOpen(false)} />
     </>
   )
 }
@@ -133,6 +143,36 @@ function Footer() {
   )
 }
 
+function AuthCallback() {
+  const location = useLocation()
+  const navigate = useNavigate()
+  const setSession = useAuth((s) => s.setSession)
+
+  const params = useMemo(() => new URLSearchParams(location.search), [location.search])
+  const token = params.get('token')
+  const email = params.get('email')
+  const error = params.get('error')
+
+  useEffect(() => {
+    if (error) {
+      navigate('/', { replace: true })
+      return
+    }
+    if (token && email) {
+      setSession(token, email)
+      navigate('/', { replace: true })
+    }
+  }, [token, email, error, navigate, setSession])
+
+  return (
+    <div className="max-w-3xl mx-auto px-4 sm:px-6 py-16 text-center">
+      <div className="fluent-card rounded-2xl p-8">
+        <p className="text-sm text-muted-foreground">로그인 처리 중…</p>
+      </div>
+    </div>
+  )
+}
+
 function AnimatedRoutes() {
   const location = useLocation()
 
@@ -149,6 +189,7 @@ function AnimatedRoutes() {
           <Route path="/" element={<Home />} />
           <Route path="/result/:keyword" element={<Result />} />
           <Route path="/simulate" element={<Simulate />} />
+          <Route path="/auth/callback" element={<AuthCallback />} />
         </Routes>
       </motion.div>
     </AnimatePresence>
