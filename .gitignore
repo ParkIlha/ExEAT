@@ -15,6 +15,7 @@ env/
 # Local env files (never commit)
 .env
 backend/.env
+backend/data/*.db
 
 # Node (for future frontend)
 node_modules/

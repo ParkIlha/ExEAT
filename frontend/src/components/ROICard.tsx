@@ -6,6 +6,7 @@
 import { useState, useMemo } from 'react'
 import { Input } from '@/components/ui/input'
 import { motion, AnimatePresence } from 'framer-motion'
+import { AlertTriangle, Check } from 'lucide-react'
 import CountUp from '@/components/CountUp'
 
 interface Props {
@@ -129,7 +130,7 @@ export default function ROICard({ exitWeek, verdict, keyword }: Props) {
             {/* 경고 배너 */}
             {isDanger && (
               <div className="flex items-start gap-2 text-[11px] text-[var(--color-stop)] bg-[var(--color-stop-bg)] rounded-xl px-3 py-2.5">
-                <span className="shrink-0 mt-0.5">⚠</span>
+                <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" strokeWidth={2.5} />
                 <span>
                   손익분기({result.breakEven}주)가 EXIT({result.exitWeek}주)보다 늦습니다.
                   초기 투자비를 줄이거나 판매량을 높여야 합니다.
@@ -138,7 +139,7 @@ export default function ROICard({ exitWeek, verdict, keyword }: Props) {
             )}
             {isViable && (
               <div className="flex items-start gap-2 text-[11px] text-[var(--color-go)] bg-[var(--color-go-bg)] rounded-xl px-3 py-2.5">
-                <span className="shrink-0 mt-0.5">✓</span>
+                <Check className="w-3.5 h-3.5 shrink-0 mt-0.5" strokeWidth={3} />
                 <span>
                   EXIT 전 투자 회수 가능. 손익분기 {result.breakEven}주 → EXIT {result.exitWeek}주 남아 수익 구간 있음.
                 </span>

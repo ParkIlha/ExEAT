@@ -20,6 +20,9 @@ from routes.ask import ask_bp
 from routes.simulate import simulate_bp
 from routes.region import region_bp
 from routes.trending import trending_bp
+from routes.auth import auth_bp
+from routes.cache_admin import cache_admin_bp
+from services.auth_service import init_db
 
 
 def create_app():
@@ -27,6 +30,8 @@ def create_app():
 
     # 한글 응답이 \uXXXX 로 깨지지 않게
     app.json.ensure_ascii = False
+
+    init_db()
 
     # CORS: React 개발서버(Vite=5173, CRA=3000)에서 호출 허용
     CORS(app, origins=[
@@ -41,6 +46,8 @@ def create_app():
     app.register_blueprint(simulate_bp, url_prefix="/api")
     app.register_blueprint(region_bp,   url_prefix="/api")
     app.register_blueprint(trending_bp, url_prefix="/api")
+    app.register_blueprint(auth_bp, url_prefix="/api")
+    app.register_blueprint(cache_admin_bp, url_prefix="/api")
 
     return app
 

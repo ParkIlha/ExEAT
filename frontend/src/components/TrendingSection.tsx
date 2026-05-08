@@ -1,18 +1,21 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
+import {
+  Flame, TrendingUp, Star, Snowflake, Activity, Target, Minus,
+} from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
 import type { TrendingItem, ItemType } from '@/store/analysis'
 
-const ITEM_TYPE_LABEL: Record<ItemType, { label: string; color: string }> = {
-  trending: { label: '🔥 폭발 상승', color: 'var(--color-stop)' },
-  growing:  { label: '↗ 성장',     color: 'var(--color-go)' },
-  classic:  { label: '★ 클래식',   color: 'var(--color-go)' },
-  seasonal: { label: '◇ 계절성',   color: 'var(--color-wait)' },
-  fading:   { label: '↘ 한물감',   color: 'var(--color-stop)' },
-  niche:    { label: '◦ 틈새',     color: '#888' },
-  stable:   { label: '— 안정',     color: '#888' },
+const ITEM_TYPE_LABEL: Record<ItemType, { label: string; color: string; Icon: typeof Flame }> = {
+  trending: { label: '폭발 상승', Icon: Flame,      color: 'var(--color-stop)' },
+  growing:  { label: '성장',     Icon: TrendingUp, color: 'var(--color-go)' },
+  classic:  { label: '클래식',   Icon: Star,       color: 'var(--color-go)' },
+  seasonal: { label: '계절성',   Icon: Snowflake,  color: 'var(--color-wait)' },
+  fading:   { label: '한물감',   Icon: Activity,   color: 'var(--color-stop)' },
+  niche:    { label: '틈새',     Icon: Target,     color: '#888' },
+  stable:   { label: '안정',     Icon: Minus,      color: '#888' },
 }
 
 export default function TrendingSection() {
@@ -81,9 +84,10 @@ export default function TrendingSection() {
                   </div>
                   <Badge
                     variant="outline"
-                    className="text-[10px] shrink-0"
+                    className="text-[10px] shrink-0 inline-flex items-center gap-1"
                     style={{ color: meta.color, borderColor: meta.color }}
                   >
+                    <meta.Icon className="w-2.5 h-2.5" strokeWidth={2.5} />
                     {meta.label}
                   </Badge>
                 </div>

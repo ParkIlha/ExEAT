@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
+import { Check, Minus, X } from 'lucide-react'
 
 type RegionResult = {
   region: string
@@ -15,10 +16,10 @@ interface Props {
 }
 
 const VERDICT_CONFIG = {
-  '적합':   { color: 'var(--color-go)',   bg: 'var(--color-go-bg)',   icon: '✓' },
-  '보통':   { color: 'var(--color-wait)', bg: 'var(--color-wait-bg)', icon: '△' },
-  '부적합': { color: 'var(--color-stop)', bg: 'var(--color-stop-bg)', icon: '✗' },
-}
+  '적합':   { color: 'var(--color-go)',   bg: 'var(--color-go-bg)',   Icon: Check },
+  '보통':   { color: 'var(--color-wait)', bg: 'var(--color-wait-bg)', Icon: Minus },
+  '부적합': { color: 'var(--color-stop)', bg: 'var(--color-stop-bg)', Icon: X },
+} as const
 
 const STAGE_CONTEXT: Record<string, string> = {
   rising:   '트렌드 상승기 — 20·30대 밀집 지역이 유리합니다',
@@ -81,10 +82,11 @@ export default function RecommendedRegions({ stage }: Props) {
                 <div className="flex items-center gap-1.5 flex-1 min-w-0">
                   <span className="font-medium text-sm truncate">{r.region}</span>
                   <span
-                    className="text-[10px] font-medium px-1.5 py-0.5 rounded-full shrink-0"
+                    className="text-[10px] font-medium px-1.5 py-0.5 rounded-full shrink-0 inline-flex items-center gap-1"
                     style={{ color: cfg.color, backgroundColor: cfg.bg }}
                   >
-                    {cfg.icon} {r.verdict}
+                    <cfg.Icon className="w-2.5 h-2.5" strokeWidth={3} />
+                    {r.verdict}
                   </span>
                 </div>
 

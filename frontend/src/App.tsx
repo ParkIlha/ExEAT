@@ -4,21 +4,39 @@ import {
 } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Toaster } from '@/components/ui/sonner'
+import LoginModal from '@/components/LoginModal'
+import HistoryMenu from '@/components/HistoryMenu'
 import Home from '@/pages/Home'
 import Result from '@/pages/Result'
 import Simulate from '@/pages/Simulate'
+import { useAuth } from '@/store/auth'
 
 const NAV = [
-  { to: '/',         label: '홈',        exact: true },
+  { to: '/', label: '홈', exact: true },
   { to: '/simulate', label: '시뮬레이터', exact: false },
 ]
 
-// ─── header ───────────────────────────────────────────────────────────────────
-
 const DEMO_KEYWORDS = ['우베', '흑임자라떼', '크로플', '마라탕', '치킨']
+
+async function clearAllCaches() {
+  try {
+    await fetch('/api/cache/clear', { method: 'POST' })
+  } catch {
+    /* ignore */
+  }
+  try {
+    localStorage.removeItem('exeat-analysis')
+    localStorage.removeItem('exeat-auth')
+  } catch {
+    /* ignore */
+  }
+  window.location.reload()
+}
 
 function Header() {
   const [serverOk, setServerOk] = useState<boolean | null>(null)
+  const [loginOpen, setLoginOpen] = useState(false)
+  const email = useAuth((s) => s.email)
 
   useEffect(() => {
     fetch('/api/health')
@@ -26,7 +44,6 @@ function Header() {
       .then((j: { ok: boolean }) => {
         setServerOk(j.ok)
         if (j.ok) {
-          // 서버 연결 확인 후 데모 키워드 사전 캐싱 (백그라운드)
           fetch('/api/warm', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -38,56 +55,83 @@ function Header() {
   }, [])
 
   return (
-    <header className="sticky top-0 z-20 border-b border-border/40 acrylic" style={{ boxShadow: 'var(--shadow-4)' }}>
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
-        <NavLink to="/" className="flex items-center gap-2 shrink-0">
-          <img src="/logo.png" alt="ExEAT" className="w-7 h-7 object-contain" />
-          <span className="font-bold text-base tracking-tight">ExEAT</span>
-          <span className="text-[10px] text-muted-foreground hidden sm:block">외식 트렌드 EXIT 진단</span>
-        </NavLink>
+    <>
+      <header className="sticky top-0 z-20 border-b border-white/10 bg-[#0a0a0a] text-white">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-3">
+          <NavLink to="/" className="flex items-center gap-2 shrink-0 min-w-0">
+            <img src="/logo.png" alt="ExEAT" className="w-7 h-7 object-contain" />
+            <span className="font-semibold text-sm tracking-tight truncate">ExEAT</span>
+            <span className="text-[10px] text-white/45 hidden lg:inline truncate">
+              외식 트렌드 EXIT 진단
+            </span>
+          </NavLink>
 
-        <nav className="flex items-center gap-1">
-          {NAV.map((n) => (
-            <NavLink
-              key={n.to}
-              to={n.to}
-              end={n.exact}
-              className={({ isActive }) =>
-                `px-3 py-1.5 rounded-lg text-xs transition-colors ${
-                  isActive
-                    ? 'bg-foreground text-background font-medium'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
-                }`
-              }
-            >
-              {n.label}
-            </NavLink>
-          ))}
-        </nav>
+          <nav className="flex items-center gap-0.5 sm:gap-1 flex-1 justify-end md:justify-center md:absolute md:left-1/2 md:-translate-x-1/2 md:flex-none">
+            {NAV.map((n) => (
+              <NavLink
+                key={n.to}
+                to={n.to}
+                end={n.exact}
+                className={({ isActive }) =>
+                  `px-2.5 sm:px-3 py-1.5 rounded-lg text-xs transition-colors whitespace-nowrap ${
+                    isActive
+                      ? 'bg-white/12 text-white font-medium'
+                      : 'text-white/60 hover:text-white hover:bg-white/8'
+                  }`
+                }
+              >
+                {n.label}
+              </NavLink>
+            ))}
+          </nav>
 
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground shrink-0">
-          <span className={`w-1.5 h-1.5 rounded-full ${
-            serverOk === null ? 'bg-muted-foreground animate-pulse' :
-            serverOk ? 'bg-[var(--color-go)]' : 'bg-[var(--color-stop)]'
-          }`} />
-          <span className="hidden sm:inline">
-            {serverOk === true ? '연결됨' : serverOk === false ? '오프라인' : '…'}
-          </span>
+          <div className="flex items-center gap-2 shrink-0">
+            <div className="hidden sm:flex items-center gap-1.5 text-[10px] text-white/45">
+              <span
+                className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                  serverOk === null ? 'bg-white/35 animate-pulse'
+                  : serverOk ? 'bg-emerald-400'
+                  : 'bg-red-400'
+                }`}
+              />
+              <span className="hidden md:inline">
+                {serverOk === true ? '연결됨' : serverOk === false ? '오프라인' : '…'}
+              </span>
+            </div>
+            <HistoryMenu />
+            {!email ? (
+              <button
+                type="button"
+                onClick={() => setLoginOpen(true)}
+                className="text-xs font-medium px-3 py-1.5 rounded-lg bg-white text-neutral-950 hover:bg-white/90 transition-colors"
+              >
+                로그인
+              </button>
+            ) : null}
+          </div>
         </div>
-      </div>
-    </header>
+      </header>
+      <LoginModal open={loginOpen} onClose={() => setLoginOpen(false)} />
+    </>
   )
 }
 
 function Footer() {
   return (
-    <footer className="border-t border-border/60 px-4 py-5 text-[11px] text-muted-foreground text-center">
-      ExEAT · 외식 트렌드 EXIT 타이밍 진단 · 네이버 DataLab + AI
+    <footer className="border-t border-border/60 px-4 py-5 text-[11px] text-muted-foreground">
+      <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-6">
+        <span>ExEAT · 외식 트렌드 EXIT 타이밍 진단 · 네이버 DataLab + AI</span>
+        <button
+          type="button"
+          onClick={() => clearAllCaches()}
+          className="text-[11px] underline underline-offset-2 hover:text-foreground transition-colors"
+        >
+          로컬·서버 캐시 초기화
+        </button>
+      </div>
     </footer>
   )
 }
-
-// ─── 페이지 전환 애니메이션 ───────────────────────────────────────────────────
 
 function AnimatedRoutes() {
   const location = useLocation()
@@ -102,9 +146,9 @@ function AnimatedRoutes() {
         transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
       >
         <Routes location={location}>
-          <Route path="/"                element={<Home />} />
+          <Route path="/" element={<Home />} />
           <Route path="/result/:keyword" element={<Result />} />
-          <Route path="/simulate"        element={<Simulate />} />
+          <Route path="/simulate" element={<Simulate />} />
         </Routes>
       </motion.div>
     </AnimatePresence>

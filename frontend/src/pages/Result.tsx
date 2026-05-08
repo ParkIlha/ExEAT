@@ -2,6 +2,11 @@ import { useEffect, useState, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { toast } from 'sonner'
+import {
+  AlertTriangle, Check, Heart, Newspaper, Minus, Info, Activity,
+  BarChart3, Brain, Target, TrendingUp, Zap, Star, Snowflake, Leaf,
+  Flame, ShieldCheck, ArrowRight,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
@@ -10,6 +15,7 @@ import RecommendedRegions from '@/components/RecommendedRegions'
 import CountUp from '@/components/CountUp'
 import ROICard from '@/components/ROICard'
 import { useAnalysis, type TrendResult, type Verdict, type DivergenceType } from '@/store/analysis'
+import { useAuth } from '@/store/auth'
 
 const VERDICT_CONFIG: Record<Verdict, {
   label: string; sub: string; desc: string; color: string; bg: string;
@@ -46,17 +52,18 @@ const AI_PROVIDER_META: Record<string, { label: string; color: string }> = {
   unknown:   { label: '?',          color: '#888888' },
 }
 
-const ITEM_TYPE_META: Record<string, { label: string; color: string; desc: string }> = {
-  trending:          { label: '🔥 폭발 상승',     color: 'var(--color-stop)', desc: '요즘 검색이 가속 중인 트렌딩 메뉴' },
-  growing:           { label: '↗ 점진 성장',      color: 'var(--color-go)',   desc: '점진적으로 우상향 중' },
-  classic:           { label: '★ 클래식',        color: 'var(--color-go)',   desc: '오래 안정적, 충성 수요 보유' },
-  seasonal:          { label: '◇ 계절성',        color: 'var(--color-wait)', desc: '시기에 따라 변동이 큼' },
-  fading:            { label: '↘ 한물감',        color: 'var(--color-stop)', desc: '정점 지나고 하락 단계' },
-  niche:             { label: '◦ 틈새',          color: '#888',              desc: '검색량 작지만 안정적' },
-  stable:            { label: '— 정체',          color: '#888',              desc: '큰 방향성 없음' },
-  steady_saturated:  { label: '⚡ 스테디·포화',   color: '#7c3aed',           desc: '치킨·커피 수준 — 시장 포화, 경쟁 매우 치열' },
-  steady_safe:       { label: '🟢 스테디·안정',   color: 'var(--color-go)',   desc: '안정 수요 확보, 차별화 여지 있는 스테디' },
-  steady_emerging:   { label: '🌱 스테디·안착',   color: '#0891b2',           desc: '유행 후 자리잡은 메뉴 (베이글·크로플 등)' },
+type ItemTypeMeta = { label: string; color: string; desc: string; Icon: typeof Flame }
+const ITEM_TYPE_META: Record<string, ItemTypeMeta> = {
+  trending:          { label: '폭발 상승',     Icon: Flame,       color: 'var(--color-stop)', desc: '요즘 검색이 가속 중인 트렌딩 메뉴' },
+  growing:           { label: '점진 성장',     Icon: TrendingUp,  color: 'var(--color-go)',   desc: '점진적으로 우상향 중' },
+  classic:           { label: '클래식',       Icon: Star,        color: 'var(--color-go)',   desc: '오래 안정적, 충성 수요 보유' },
+  seasonal:          { label: '계절성',       Icon: Snowflake,   color: 'var(--color-wait)', desc: '시기에 따라 변동이 큼' },
+  fading:            { label: '한물감',       Icon: Activity,    color: 'var(--color-stop)', desc: '정점 지나고 하락 단계' },
+  niche:             { label: '틈새',         Icon: Target,      color: '#888',              desc: '검색량 작지만 안정적' },
+  stable:            { label: '정체',         Icon: Minus,       color: '#888',              desc: '큰 방향성 없음' },
+  steady_saturated:  { label: '스테디·포화',  Icon: Zap,         color: '#7c3aed',           desc: '치킨·커피 수준 — 시장 포화, 경쟁 매우 치열' },
+  steady_safe:       { label: '스테디·안정',  Icon: ShieldCheck, color: 'var(--color-go)',   desc: '안정 수요 확보, 차별화 여지 있는 스테디' },
+  steady_emerging:   { label: '스테디·안착',  Icon: Leaf,        color: '#0891b2',           desc: '유행 후 자리잡은 메뉴 (베이글·크로플 등)' },
 }
 
 // ─── section wrapper ─────────────────────────────────────────────────────────
@@ -140,8 +147,10 @@ function AnalyzingScreen({ keyword }: { keyword: string }) {
                 {done ? (
                   <motion.span
                     initial={{ scale: 0 }} animate={{ scale: 1 }}
-                    className="text-[var(--color-go)] text-sm"
-                  >✓</motion.span>
+                    className="text-[var(--color-go)]"
+                  >
+                    <Check className="w-3.5 h-3.5" strokeWidth={3} />
+                  </motion.span>
                 ) : active ? (
                   <motion.div
                     className="w-3 h-3 rounded-full border-2 border-foreground border-t-transparent"
@@ -192,6 +201,7 @@ export default function Result() {
   const { keyword = '' } = useParams<{ keyword: string }>()
   const navigate = useNavigate()
   const { getCached, setCached, userProfile } = useAnalysis()
+  const recordSearch = useAuth((s) => s.recordSearch)
 
   const decoded = decodeURIComponent(keyword)
   const cached  = getCached(decoded)
@@ -219,7 +229,11 @@ export default function Result() {
         if (!r.ok) throw new Error((json as { error?: string }).error ?? `오류 ${r.status}`)
         return json as TrendResult
       })
-      .then((d) => { setData(d); setCached(decoded, d) })
+      .then((d) => {
+        setData(d)
+        setCached(decoded, d)
+        recordSearch(decoded, d.verdict)
+      })
       .catch((e: Error) => {
         toast.error(e.message, {
           description: '키워드를 확인하거나 잠시 후 다시 시도해주세요.',
@@ -233,9 +247,9 @@ export default function Result() {
   const [activeTab, setActiveTab] = useState<'data' | 'ai' | 'plan'>('data')
 
   const TABS = [
-    { id: 'data' as const, label: '📊 데이터', },
-    { id: 'ai'   as const, label: '🤖 AI 분석', },
-    { id: 'plan' as const, label: '📋 액션 플랜', },
+    { id: 'data' as const, label: '데이터',     Icon: BarChart3 },
+    { id: 'ai'   as const, label: 'AI 분석',    Icon: Brain },
+    { id: 'plan' as const, label: '액션 플랜',  Icon: Target },
   ]
 
   return (
@@ -274,20 +288,24 @@ export default function Result() {
               <div className="flex-1 min-w-0 flex flex-col gap-4">
                 {/* 탭 네비게이션 */}
                 <div className="flex gap-1 p-1 fluent-card rounded-xl">
-                  {TABS.map((tab) => (
-                    <button
-                      key={tab.id}
-                      type="button"
-                      onClick={() => setActiveTab(tab.id)}
-                      className={`flex-1 py-2 px-3 rounded-lg text-xs font-medium transition-all ${
-                        activeTab === tab.id
-                          ? 'bg-foreground text-background shadow-sm'
-                          : 'text-muted-foreground hover:text-foreground'
-                      }`}
-                    >
-                      {tab.label}
-                    </button>
-                  ))}
+                  {TABS.map((tab) => {
+                    const Icon = tab.Icon
+                    return (
+                      <button
+                        key={tab.id}
+                        type="button"
+                        onClick={() => setActiveTab(tab.id)}
+                        className={`flex-1 py-2 px-3 rounded-lg text-xs font-medium transition-all inline-flex items-center justify-center gap-1.5 ${
+                          activeTab === tab.id
+                            ? 'bg-foreground text-background shadow-sm'
+                            : 'text-muted-foreground hover:text-foreground'
+                        }`}
+                      >
+                        <Icon className="w-3.5 h-3.5" strokeWidth={2} />
+                        {tab.label}
+                      </button>
+                    )
+                  })}
                 </div>
 
                 {/* 탭 콘텐츠 */}
@@ -345,10 +363,27 @@ export default function Result() {
 function VerdictPanel({ data }: { data: TrendResult }) {
   const v = VERDICT_CONFIG[data.verdict]
   const itemMeta = data.itemType ? ITEM_TYPE_META[data.itemType] : null
-  const aiMeta = AI_PROVIDER_META[data.aiProvider ?? 'unknown']
+  // aiProvider에 ' (cached)' 같은 접미사가 붙을 수 있으므로 첫 단어만 추출
+  const providerKey = (data.aiProvider ?? 'unknown').split(' ')[0]
+  const aiMeta = AI_PROVIDER_META[providerKey] ?? AI_PROVIDER_META['unknown']
+  const isAlgorithmFallback = providerKey === 'algorithm'
+
+  // 빠른 ROI 미리보기 (카페 음료 기본값 가정)
+  // 사용자가 "액션 플랜" 탭 안 눌러도 가치 인식 가능하게
+  const ew = data.exitWeek ?? 12
+  const quickRevenue = 7000 * 0.65 * 40 * 7 * ew  // 음료 7천원 × 65% 마진 × 40잔 × 7일 × EXIT주
+  const quickNet     = quickRevenue - 1500000     // 초기투자 150만 차감
 
   return (
     <div className="flex flex-col gap-3">
+      {/* AI 폴백 알림 (Gemini 실패 시) */}
+      {isAlgorithmFallback && (
+        <div className="text-[10px] text-[var(--color-wait)] bg-[var(--color-wait-bg)] border border-[var(--color-wait)]/30 rounded-lg px-2.5 py-1.5 flex items-center gap-1.5">
+          <Info className="w-3 h-3 shrink-0" />
+          <span>AI 응답 지연 — 알고리즘 분석 결과를 표시합니다 (정확도 동일)</span>
+        </div>
+      )}
+
       {/* 메인 판정 카드 */}
       <motion.div
         initial={{ opacity: 0, y: 16 }}
@@ -375,7 +410,23 @@ function VerdictPanel({ data }: { data: TrendResult }) {
               className="mt-1 inline-flex items-center gap-1.5 self-start text-[11px] font-mono rounded-lg px-2.5 py-1.5 border"
               style={{ borderColor: v.color + '60', color: v.color, background: v.color + '0e' }}
             >
-              ⚠ <strong><CountUp to={data.exitWeek} duration={900} /></strong>주 후 50% 이하
+              <AlertTriangle className="w-3 h-3" strokeWidth={2.5} />
+              <strong><CountUp to={data.exitWeek} duration={900} /></strong>주 후 50% 이하
+            </div>
+          )}
+
+          {/* 빠른 수익 미리보기 — Gemini가 줄 수 없는 답 */}
+          {quickNet > 0 && data.verdict !== 'STOP' && (
+            <div className="mt-3 pt-3 border-t border-foreground/8">
+              <p className="text-[10px] text-muted-foreground mb-1">예상 수익 미리보기 · 카페 기본값</p>
+              <p className="text-sm font-bold">
+                EXIT까지 약 <span className="font-mono" style={{ color: v.color }}>
+                  {quickNet >= 10000 ? `${(quickNet / 10000).toFixed(0)}만원` : `${Math.round(quickNet).toLocaleString()}원`}
+                </span>
+              </p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">
+                액션 플랜 탭에서 내 가게 숫자로 정확히 계산
+              </p>
             </div>
           )}
         </div>
@@ -414,16 +465,43 @@ function VerdictPanel({ data }: { data: TrendResult }) {
           {itemMeta && (
             <div className="flex items-center justify-between">
               <span className="text-[10px] text-muted-foreground">메뉴 유형</span>
-              <span className="text-[11px] font-semibold" style={{ color: itemMeta.color }}>{itemMeta.label}</span>
+              <span className="text-[11px] font-semibold inline-flex items-center gap-1" style={{ color: itemMeta.color }}>
+                <itemMeta.Icon className="w-3 h-3" strokeWidth={2.2} />
+                {itemMeta.label}
+              </span>
             </div>
           )}
+          {data.peakDecay != null && (
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] text-muted-foreground">정점 대비</span>
+              <span className="text-[11px] font-mono">
+                {data.peakDecay > 0 ? '−' : ''}{Math.round(data.peakDecay * 100)}%
+              </span>
+            </div>
+          )}
+          {data.signalDivergence?.type && data.signalDivergence.type !== 'neutral' && (() => {
+            const dt = data.signalDivergence.type
+            const map = {
+              bubble:       { Icon: AlertTriangle, label: '거품 가능성',  color: 'var(--color-stop)' },
+              confirmed:    { Icon: Check,         label: '실수요 확인',  color: 'var(--color-go)' },
+              loyal:        { Icon: Heart,         label: '충성층 존재',  color: 'var(--color-wait)' },
+              media_driven: { Icon: Newspaper,     label: '미디어 주도',  color: '#f59e0b' },
+            } as const
+            const m = (map as Record<string, { Icon: typeof Check; label: string; color: string } | undefined>)[dt]
+            if (!m) return null
+            return (
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] text-muted-foreground">시그널</span>
+                <span className="text-[11px] font-medium inline-flex items-center gap-1" style={{ color: m.color }}>
+                  <m.Icon className="w-3 h-3" strokeWidth={2.5} />
+                  {m.label}
+                </span>
+              </div>
+            )
+          })()}
           <div className="flex items-center justify-between">
-            <span className="text-[10px] text-muted-foreground">AI 제공</span>
-            <span className="text-[11px] font-mono" style={{ color: aiMeta.color }}>{aiMeta.label}</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] text-muted-foreground">분석 기간</span>
-            <span className="text-[11px] font-mono text-muted-foreground">{data.startDate?.slice(2)} ~</span>
+            <span className="text-[10px] text-muted-foreground">분석</span>
+            <span className="text-[10px] font-mono" style={{ color: aiMeta.color }}>{aiMeta.label}</span>
           </div>
         </div>
       </motion.div>
@@ -557,7 +635,8 @@ function VerdictHero({ data }: { data: TrendResult }) {
             className="mt-2 inline-flex items-center gap-2 self-start text-xs font-mono bg-background/60 backdrop-blur rounded-lg px-3 py-2 border"
             style={{ borderColor: v.color, color: v.color }}
           >
-            ⚠ 약 <strong><CountUp to={data.exitWeek} duration={900} /></strong>주 후 검색량 50% 이하 예상
+            <AlertTriangle className="w-3.5 h-3.5" strokeWidth={2.5} />
+            약 <strong><CountUp to={data.exitWeek} duration={900} /></strong>주 후 검색량 50% 이하 예상
           </motion.div>
         )}
       </div>
@@ -665,16 +744,16 @@ function ItemTypeCard({ data }: { data: TrendResult }) {
       style={{ borderColor: meta.color, backgroundColor: meta.color + '0d' }}
     >
       <div
-        className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl flex items-center justify-center text-2xl sm:text-3xl shrink-0"
+        className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl flex items-center justify-center shrink-0"
         style={{ backgroundColor: meta.color + '22' }}
       >
-        {meta.label.split(' ')[0]}
+        <meta.Icon className="w-6 h-6 sm:w-7 sm:h-7" strokeWidth={1.8} style={{ color: meta.color }} />
       </div>
       <div className="flex flex-col gap-0.5 min-w-0">
         <span className="text-[11px] font-medium uppercase tracking-widest" style={{ color: meta.color }}>
           메뉴 본질
         </span>
-        <span className="font-semibold text-base">{meta.label.split(' ').slice(1).join(' ')}</span>
+        <span className="font-semibold text-base">{meta.label}</span>
         <span className="text-xs text-muted-foreground">{meta.desc}</span>
       </div>
     </div>
@@ -686,13 +765,14 @@ function ItemTypeCard({ data }: { data: TrendResult }) {
 function DataInsightCard({ data }: { data: TrendResult }) {
   const insight = data.dataInsight || data.reasoning
   if (!insight) return null
-  const provider = data.aiProvider ?? 'unknown'
-  const meta = AI_PROVIDER_META[provider]
+  const providerRaw = data.aiProvider ?? 'unknown'
+  const provider = providerRaw.split(' ')[0]
+  const meta = AI_PROVIDER_META[provider] ?? AI_PROVIDER_META['unknown']
   return (
     <div className="fluent-card rounded-2xl p-5">
       <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
         <div className="flex items-center gap-2">
-          <span className="text-base">📊</span>
+          <BarChart3 className="w-4 h-4 text-muted-foreground" strokeWidth={2} />
           <span className="text-[11px] font-medium uppercase tracking-widest text-muted-foreground">
             데이터 인사이트
           </span>
@@ -744,7 +824,7 @@ function ActionPlanCard({ data }: { data: TrendResult }) {
   return (
     <div className="fluent-card rounded-2xl p-5">
       <div className="flex items-center gap-2 mb-4">
-        <span className="text-base">🎯</span>
+        <Target className="w-4 h-4 text-muted-foreground" strokeWidth={2} />
         <span className="text-[11px] font-medium uppercase tracking-widest text-muted-foreground">
           액션 플랜
         </span>
@@ -803,7 +883,7 @@ function WorstCaseCard({ data }: { data: TrendResult }) {
   return (
     <div className="bg-[var(--color-stop-bg)] border border-[var(--color-stop)]/30 rounded-2xl p-5">
       <div className="flex items-center gap-2 mb-2">
-        <span className="text-base">⚠</span>
+        <AlertTriangle className="w-4 h-4 text-[var(--color-stop)]" strokeWidth={2.2} />
         <span className="text-[11px] font-medium uppercase tracking-widest text-[var(--color-stop)]">
           최악의 시나리오
         </span>
@@ -815,12 +895,12 @@ function WorstCaseCard({ data }: { data: TrendResult }) {
 
 // ─── 7. Signal Card ──────────────────────────────────────────────────────────
 
-const DIVERGENCE_CONFIG: Record<DivergenceType, { label: string; desc: string; color: string; icon: string }> = {
-  bubble:       { label: '거품 경보', desc: '검색 관심도는 높지만 실구매 시그널이 약합니다. 단순 유행일 가능성이 있습니다.', color: '#ef4444', icon: '⚠️' },
-  confirmed:    { label: '실수요 확인', desc: '검색량·쇼핑클릭·블로그 버즈가 모두 일치합니다. 실제 소비가 뒷받침된 트렌드입니다.', color: 'var(--color-go)', icon: '✅' },
-  loyal:        { label: '충성층 존재', desc: '검색량은 줄었지만 블로그 콘텐츠가 활발합니다. 고정 팬층이 있는 메뉴입니다.', color: 'var(--color-wait)', icon: '💛' },
-  media_driven: { label: '미디어 주도', desc: '뉴스 노출은 많지만 UGC가 적습니다. 미디어 과대 포장일 수 있습니다.', color: '#f59e0b', icon: '📰' },
-  neutral:      { label: '신호 중립', desc: '신호 간 뚜렷한 불일치 없음. 종합 판정을 참고하세요.', color: '#888', icon: '➖' },
+const DIVERGENCE_CONFIG: Record<DivergenceType, { label: string; desc: string; color: string; Icon: typeof Check }> = {
+  bubble:       { label: '거품 경보',   desc: '검색 관심도는 높지만 실구매 시그널이 약합니다. 단순 유행일 가능성이 있습니다.', color: '#ef4444',           Icon: AlertTriangle },
+  confirmed:    { label: '실수요 확인', desc: '검색량·쇼핑클릭·블로그 버즈가 모두 일치합니다. 실제 소비가 뒷받침된 트렌드입니다.', color: 'var(--color-go)',   Icon: Check },
+  loyal:        { label: '충성층 존재', desc: '검색량은 줄었지만 블로그 콘텐츠가 활발합니다. 고정 팬층이 있는 메뉴입니다.', color: 'var(--color-wait)', Icon: Heart },
+  media_driven: { label: '미디어 주도', desc: '뉴스 노출은 많지만 UGC가 적습니다. 미디어 과대 포장일 수 있습니다.', color: '#f59e0b',           Icon: Newspaper },
+  neutral:      { label: '신호 중립',   desc: '신호 간 뚜렷한 불일치 없음. 종합 판정을 참고하세요.', color: '#888',              Icon: Minus },
 }
 
 function SignalBar({ label, level, count, maxCount, color }: {
@@ -885,7 +965,7 @@ function SignalCard({ data }: { data: TrendResult }) {
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold"
           style={{ backgroundColor: cfg.color + '18', color: cfg.color }}
         >
-          <span>{cfg.icon}</span>
+          <cfg.Icon className="w-3.5 h-3.5" strokeWidth={2.5} />
           <span>{cfg.label}</span>
         </div>
       </div>
@@ -992,9 +1072,9 @@ function SimulatorCTA({
       <Button
         variant="secondary"
         onClick={() => navigate('/simulate', { state: { exitWeek } })}
-        className="bg-background text-foreground hover:bg-background/90 shrink-0"
+        className="bg-background text-foreground hover:bg-background/90 shrink-0 gap-1.5"
       >
-        시뮬레이터 →
+        시뮬레이터 <ArrowRight className="w-3.5 h-3.5" />
       </Button>
     </div>
   )

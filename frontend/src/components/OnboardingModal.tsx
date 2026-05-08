@@ -1,15 +1,19 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import {
+  Coffee, UtensilsCrossed, Soup, Croissant, Truck, ChefHat,
+  ArrowRight, ArrowLeft,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useAnalysis, type BusinessType, type UserProfile } from '@/store/analysis'
 
-const BUSINESS_TYPES: { value: BusinessType; label: string; icon: string; desc: string }[] = [
-  { value: 'cafe',       label: '카페·디저트',        icon: '☕', desc: '커피·음료·케이크·빙수 등' },
-  { value: 'restaurant', label: '식당·이자카야',       icon: '🍽️', desc: '한식·중식·일식·양식 등' },
-  { value: 'fastfood',   label: '분식·패스트푸드',     icon: '🥡', desc: '떡볶이·김밥·버거·치킨 등' },
-  { value: 'bakery',     label: '베이커리·제과점',     icon: '🥐', desc: '빵·케이크·마카롱 등' },
-  { value: 'foodtruck',  label: '푸드트럭·포장마차',   icon: '🚚', desc: '이동식 판매 또는 노점' },
-  { value: 'other',      label: '기타',               icon: '🍴', desc: '위에 해당 없음' },
+const BUSINESS_TYPES: { value: BusinessType; label: string; Icon: typeof Coffee; desc: string }[] = [
+  { value: 'cafe',       label: '카페·디저트',        Icon: Coffee,          desc: '커피·음료·케이크·빙수 등' },
+  { value: 'restaurant', label: '식당·이자카야',      Icon: UtensilsCrossed, desc: '한식·중식·일식·양식 등' },
+  { value: 'fastfood',   label: '분식·패스트푸드',    Icon: Soup,            desc: '떡볶이·김밥·버거·치킨 등' },
+  { value: 'bakery',     label: '베이커리·제과점',    Icon: Croissant,       desc: '빵·케이크·마카롱 등' },
+  { value: 'foodtruck',  label: '푸드트럭·포장마차',  Icon: Truck,           desc: '이동식 판매 또는 노점' },
+  { value: 'other',      label: '기타',              Icon: ChefHat,          desc: '위에 해당 없음' },
 ]
 
 const REGIONS = [
@@ -60,36 +64,39 @@ export default function OnboardingModal({ onDone }: Props) {
               <div className="flex items-center gap-3 mb-6">
                 <img src="/logo.png" alt="ExEAT" className="w-10 h-10 object-contain" />
                 <div>
-                  <h2 className="font-bold text-base">처음 오셨군요 👋</h2>
+                  <h2 className="font-bold text-base">처음 오셨군요</h2>
                   <p className="text-xs text-muted-foreground">어떤 업종을 운영 중이신가요?</p>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-2 mb-6">
-                {BUSINESS_TYPES.map((bt) => (
-                  <button
-                    key={bt.value}
-                    type="button"
-                    onClick={() => setBusinessType(bt.value)}
-                    className={`text-left p-3 rounded-xl border transition-all ${
-                      businessType === bt.value
-                        ? 'border-foreground bg-foreground/5 ring-1 ring-foreground'
-                        : 'border-border hover:border-foreground/40 hover:bg-secondary/50'
-                    }`}
-                  >
-                    <span className="text-xl block mb-1">{bt.icon}</span>
-                    <span className="text-xs font-semibold block">{bt.label}</span>
-                    <span className="text-[10px] text-muted-foreground">{bt.desc}</span>
-                  </button>
-                ))}
+                {BUSINESS_TYPES.map((bt) => {
+                  const selected = businessType === bt.value
+                  return (
+                    <button
+                      key={bt.value}
+                      type="button"
+                      onClick={() => setBusinessType(bt.value)}
+                      className={`text-left p-3 rounded-xl border transition-all ${
+                        selected
+                          ? 'border-foreground bg-foreground/5 ring-1 ring-foreground'
+                          : 'border-border hover:border-foreground/40 hover:bg-secondary/50'
+                      }`}
+                    >
+                      <bt.Icon className="w-5 h-5 mb-1.5" strokeWidth={1.6} />
+                      <span className="text-xs font-semibold block">{bt.label}</span>
+                      <span className="text-[10px] text-muted-foreground">{bt.desc}</span>
+                    </button>
+                  )
+                })}
               </div>
 
               <Button
-                className="w-full"
+                className="w-full gap-1.5"
                 disabled={!businessType}
                 onClick={() => setStep(2)}
               >
-                다음 →
+                다음 <ArrowRight className="w-3.5 h-3.5" />
               </Button>
 
               <button
@@ -105,9 +112,9 @@ export default function OnboardingModal({ onDone }: Props) {
               <button
                 type="button"
                 onClick={() => setStep(1)}
-                className="text-xs text-muted-foreground hover:text-foreground mb-5 block transition-colors"
+                className="text-xs text-muted-foreground hover:text-foreground mb-5 inline-flex items-center gap-1 transition-colors"
               >
-                ← 뒤로
+                <ArrowLeft className="w-3 h-3" /> 뒤로
               </button>
 
               <h2 className="font-bold text-base mb-1">지역을 선택해주세요</h2>
@@ -133,11 +140,11 @@ export default function OnboardingModal({ onDone }: Props) {
               </div>
 
               <Button
-                className="w-full"
+                className="w-full gap-1.5"
                 disabled={!region}
                 onClick={handleDone}
               >
-                분석 시작하기 →
+                분석 시작하기 <ArrowRight className="w-3.5 h-3.5" />
               </Button>
             </motion.div>
           )}

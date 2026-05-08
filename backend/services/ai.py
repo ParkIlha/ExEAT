@@ -1,10 +1,9 @@
 """
-AI 분석 서비스 — 구조화된 진단 + 액션 플랜
+AI 분석 서비스 — Gemini 기반 구조화 진단 + 액션 플랜
 
 응답 형식: JSON (verdict, summary, immediate, shortterm, midterm, worstCase, alternatives)
-폴백: API 키 없으면 알고리즘 기반 폴백 응답
-
-우선순위: Claude API → Gemini API → 알고리즘 폴백
+폴백 체인: Gemini 2.5 Flash → 2.0 Flash → 2.0 Flash Lite → 알고리즘
+캐시: 동일 keyword + stage + itemType 24시간 인메모리 캐시
 """
 
 import os
@@ -31,6 +30,13 @@ def _get_ai_cache(key: str) -> dict | None:
 
 def _set_ai_cache(key: str, result: dict) -> None:
     _ai_cache[key] = (dict(result), time.time())
+
+
+def clear_ai_response_cache() -> None:
+    """Gemini 응답 인메모리 캐시 비우기."""
+    global _ai_cache
+    _ai_cache.clear()
+
 
 _SYSTEM = """
 너는 외식/먹을거리 트렌드 분석가다.
@@ -276,7 +282,7 @@ def _ask_gemini(prompt: str, lifecycle: dict) -> dict:
     raise last_err
 
 
-def ask_claude(
+def ask_ai(
     keyword: str,
     lifecycle: dict,
     weeks: list[dict],

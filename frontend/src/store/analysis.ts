@@ -151,6 +151,14 @@ export const useAnalysis = create<AnalysisState>()(
       setSimInput: (next) =>
         set((s) => ({ simInput: { ...s.simInput, ...next } })),
     }),
-    { name: 'exeat-analysis' },
+    {
+      name: 'exeat-analysis',
+      version: 2,
+      migrate: (persisted, ver) => {
+        const s = (persisted ?? {}) as Partial<AnalysisState>
+        if (ver < 2) return { ...s, cache: {} }
+        return persisted as AnalysisState
+      },
+    },
   ),
 )

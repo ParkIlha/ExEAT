@@ -25,6 +25,11 @@ _CACHE: dict = {"ts": 0.0, "data": []}
 _TTL = 60 * 60   # 1시간
 
 
+def clear_trending_cache() -> None:
+    _CACHE["data"] = []
+    _CACHE["ts"] = 0.0
+
+
 def get_trending(top_n: int = 5, force: bool = False) -> list[dict]:
     """후보 키워드 분석 후 상승률 순 정렬, 상위 top_n 반환."""
     if not force and _CACHE["data"] and time.time() - _CACHE["ts"] < _TTL:

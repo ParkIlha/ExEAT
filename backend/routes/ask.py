@@ -13,7 +13,7 @@ from flask import Blueprint, request, jsonify
 from services.naver import fetch_trend, fetch_shopping_trend, fetch_blog_count, fetch_news_count
 from services.google_trend import fetch_google_trend, compute_google_direction
 from services.lifecycle import analyze_lifecycle
-from services.claude import ask_claude
+from services.ai import ask_ai
 
 ask_bp = Blueprint("ask", __name__)
 
@@ -21,6 +21,12 @@ ask_bp = Blueprint("ask", __name__)
 _DEMO_KEYWORDS = ["우베", "흑임자라떼", "크로플", "마라탕", "치킨"]
 _result_cache: dict[str, dict] = {}
 _cache_lock = threading.Lock()
+
+
+def clear_ask_caches() -> None:
+    """분석 결과 인메모리 캐시 비우기."""
+    with _cache_lock:
+        _result_cache.clear()
 
 
 def _build_result(keyword: str) -> dict | None:
@@ -42,7 +48,7 @@ def _build_result(keyword: str) -> dict | None:
             lifecycle.get("stage", "stable"), shopping_weeks,
             blog_data, news_data, google_dir,
         )
-        ai_result = ask_claude(
+        ai_result = ask_ai(
             keyword, lifecycle, trend["weeks"],
             shopping=shopping_weeks or None,
             blog=blog_data, news=news_data, google_dir=google_dir,
@@ -117,7 +123,7 @@ def warm():
 
 @ask_bp.route("/warm/status", methods=["GET"])
 def warm_status():
-    from services.claude import _ai_cache, _AI_CACHE_TTL
+    from services.ai import _ai_cache, _AI_CACHE_TTL
     import time
     with _cache_lock:
         data_keys = list(_result_cache.keys())
@@ -251,7 +257,7 @@ def ask():
         )
 
         # 5. AI 액션 플랜 (모든 데이터 전달)
-        ai_result = ask_claude(
+        ai_result = ask_ai(
             keyword, lifecycle, trend["weeks"],
             shopping=shopping_weeks or None,
             blog=blog_data,
