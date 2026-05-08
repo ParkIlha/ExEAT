@@ -499,10 +499,10 @@ function VerdictPanel({ data }: { data: TrendResult }) {
           {data.signalDivergence?.type && data.signalDivergence.type !== 'neutral' && (() => {
             const dt = data.signalDivergence.type
             const map = {
-              bubble:       { Icon: AlertTriangle, label: '거품 가능성',  color: 'var(--color-stop)' },
-              confirmed:    { Icon: Check,         label: '실수요 확인',  color: 'var(--color-go)' },
-              loyal:        { Icon: Heart,         label: '충성층 존재',  color: 'var(--color-wait)' },
-              media_driven: { Icon: Newspaper,     label: '미디어 주도',  color: '#f59e0b' },
+              bubble:       { Icon: AlertTriangle, label: '거품 주의',   color: 'var(--color-stop)' },
+              confirmed:    { Icon: Check,         label: '수요 신뢰',   color: 'var(--color-go)' },
+              loyal:        { Icon: Heart,         label: '충성 수요',   color: 'var(--color-wait)' },
+              media_driven: { Icon: Newspaper,     label: '미디어 주도', color: '#f59e0b' },
             } as const
             const m = (map as Record<string, { Icon: typeof Check; label: string; color: string } | undefined>)[dt]
             if (!m) return null
@@ -979,10 +979,10 @@ function WorstCaseCard({ data }: { data: TrendResult }) {
 // ─── 7. Signal Card ──────────────────────────────────────────────────────────
 
 const DIVERGENCE_CONFIG: Record<DivergenceType, { label: string; desc: string; color: string; Icon: typeof Check }> = {
-  bubble:       { label: '거품 경보',   desc: '검색 관심도는 높지만 실구매 시그널이 약합니다. 단순 유행일 가능성이 있습니다.', color: '#ef4444',           Icon: AlertTriangle },
-  confirmed:    { label: '실수요 확인', desc: '검색량·쇼핑클릭·블로그 버즈가 모두 일치합니다. 실제 소비가 뒷받침된 트렌드입니다.', color: 'var(--color-go)',   Icon: Check },
-  loyal:        { label: '충성층 존재', desc: '검색량은 줄었지만 블로그 콘텐츠가 활발합니다. 고정 팬층이 있는 메뉴입니다.', color: 'var(--color-wait)', Icon: Heart },
-  media_driven: { label: '미디어 주도', desc: '뉴스 노출은 많지만 UGC가 적습니다. 미디어 과대 포장일 수 있습니다.', color: '#f59e0b',           Icon: Newspaper },
+  bubble:       { label: '거품 주의',   desc: '검색 관심도는 높지만 실구매 시그널이 약합니다. 단순 유행일 가능성이 있습니다.', color: '#ef4444',           Icon: AlertTriangle },
+  confirmed:    { label: '수요 신뢰',   desc: '여러 데이터 신호가 일치합니다. 실제 소비가 뒷받침된 트렌드입니다.', color: 'var(--color-go)',   Icon: Check },
+  loyal:        { label: '충성 수요',   desc: '검색량은 줄었지만 블로그 콘텐츠가 활발합니다. 고정 팬층이 있는 메뉴입니다.', color: 'var(--color-wait)', Icon: Heart },
+  media_driven: { label: '미디어 주도', desc: '뉴스 노출은 많지만 소비자 반응이 적습니다. 미디어 과대 포장일 수 있습니다.', color: '#f59e0b',           Icon: Newspaper },
   neutral:      { label: '신호 중립',   desc: '신호 간 뚜렷한 불일치 없음. 종합 판정을 참고하세요.', color: '#888',              Icon: Minus },
 }
 
