@@ -24,15 +24,16 @@
 │   ├─ Simulator     (F6 손익분기)                  │
 │   └─ CaseLibrary   (F7 과거 사례)                 │
 └────────────────┬─────────────────────────────────┘
-                 │ HTTP (localhost:5000)
+                 │ HTTP (localhost:5001)
                  ▼
 ┌──────────────────────────────────────────────────┐
 │  [Flask 서버 - Python]                            │
-│   ├─ POST /api/ask       ← 메인 통합 분석         │
-│   ├─ POST /api/trend     ← DataLab 그래프         │
-│   ├─ POST /api/region    ← 지역 적합도            │
-│   ├─ POST /api/simulate  ← 손익분기 계산          │
-│   └─ GET  /api/cases     ← 정적 케이스 DB         │
+│   ├─ GET  /api/health    ← 헬스체크 🟢            │
+│   ├─ POST /api/trend     ← DataLab 그래프 🟡      │
+│   ├─ POST /api/ask       ← 메인 통합 분석 ⚪      │
+│   ├─ POST /api/region    ← 지역 적합도 ⚪         │
+│   ├─ POST /api/simulate  ← 손익분기 계산 ⚪       │
+│   └─ GET  /api/cases     ← 정적 케이스 DB ⚪      │
 └──────┬──────────┬─────────────┬─────────────────┘
        ▼          ▼             ▼
   네이버 DataLab  Claude API   주민등록 CSV
@@ -41,49 +42,39 @@
 
 ---
 
-## 📂 폴더 구조 (목표)
+## 📂 폴더 구조 (현재 상태)
 
 ```
 ExEAT/
 ├── README.md                    🟢
 ├── .gitignore                   🟢
 ├── .env.example                 🟢
-├── .env                         (git 제외, 사용자 로컬에만)
+├── .env                         (사용자 로컬에만, git 제외)
 │
 ├── backend/
-│   ├── app.py                   ⚪ Flask 진입점
-│   ├── requirements.txt         ⚪
+│   ├── app.py                   🟡 STEP 2/3 — Blueprint 등록
+│   ├── requirements.txt         🟡 STEP 2/3 — Flask, flask-cors, dotenv, requests
 │   ├── routes/
-│   │   ├── ask.py               ⚪ F9
-│   │   ├── trend.py             ⚪ F1, F3
-│   │   ├── region.py            ⚪ F4
-│   │   ├── simulate.py          ⚪ F6
-│   │   └── cases.py             ⚪ F7
+│   │   ├── __init__.py          🟢
+│   │   ├── health.py            🟢 STEP 2 — /api/health
+│   │   ├── trend.py             🟡 STEP 3 — /api/trend
+│   │   ├── ask.py               ⚪ F9 (예정)
+│   │   ├── region.py            ⚪ F4 (예정)
+│   │   ├── simulate.py          ⚪ F6 (예정)
+│   │   └── cases.py             ⚪ F7 (예정)
 │   ├── services/
-│   │   ├── naver.py             ⚪ DataLab 클라이언트
-│   │   ├── claude.py            ⚪ Claude 클라이언트
-│   │   └── lifecycle.py         ⚪ 수명주기 알고리즘
+│   │   ├── __init__.py          🟡 STEP 3
+│   │   ├── naver.py             🟡 STEP 3 — DataLab fetch_trend()
+│   │   ├── claude.py            ⚪ Claude 클라이언트 (예정)
+│   │   └── lifecycle.py         ⚪ 수명주기 알고리즘 (예정)
 │   └── data/
-│       ├── cases.json           ⚪ F7 정적 데이터
-│       └── population.csv       ⚪ F4 행정구역 인구
+│       ├── cases.json           ⚪ F7 (예정)
+│       └── population.csv       ⚪ F4 (예정)
 │
-├── frontend/
-│   ├── src/
-│   │   ├── App.jsx              ⚪
-│   │   ├── main.jsx             ⚪
-│   │   ├── components/
-│   │   │   ├── AskBox.jsx       ⚪
-│   │   │   ├── TrendChart.jsx   ⚪
-│   │   │   ├── VerdictCard.jsx  ⚪
-│   │   │   ├── RegionPanel.jsx  ⚪
-│   │   │   ├── Simulator.jsx    ⚪
-│   │   │   └── CaseLibrary.jsx  ⚪
-│   │   ├── api/
-│   │   │   └── client.js        ⚪
-│   │   └── styles/
-│   │       └── theme.css        ⚪
-│   ├── package.json             ⚪
-│   └── vite.config.js           ⚪
+├── frontend/                    ⚪ STEP 4 부터
+│   ├── vite.config.ts           🟡 `/api` → `http://localhost:5001` 프록시
+│   └── src/
+│       └── App.tsx              🟡 Health 확인 + Trend 호출(임시 UI)
 │
 └── docs/
     ├── ARCHITECTURE.md          🟢 (이 문서)
@@ -92,7 +83,7 @@ ExEAT/
     └── 문제정의서.md             ⚪
 ```
 
-상태 표기: 🟢 완료 / 🟡 진행 중 / ⚪ 대기
+상태 표기: 🟢 완료 (사용자 검증) / 🟡 코드 제공됨 / ⚪ 대기
 
 ---
 
@@ -100,49 +91,60 @@ ExEAT/
 
 | 메서드 | 경로 | 입력 | 출력 | 담당 기능 | 상태 |
 |---|---|---|---|---|---|
-| POST | `/api/ask` | `{question, location?}` | 통합 분석 객체 | F9 (F1~F4, F7 호출) | ⚪ |
-| POST | `/api/trend` | `{keyword}` | `{weeks, values, stage, exitWeek}` | F1, F3 | ⚪ |
-| POST | `/api/region` | `{address, keyword}` | `{score, residentAges, consumerAges, comment}` | F4 | ⚪ |
-| POST | `/api/simulate` | `{unitCost, price, dailySales, exitWeek}` | `{breakEvenWeek, profit, riskLevel}` | F6 | ⚪ |
+| GET | `/api/health` | - | `{ok, service, message}` | 헬스체크 | 🟢 |
+| POST | `/api/trend` | `{keyword}` | `{keyword, startDate, endDate, weeks: [{period, ratio}]}` | F1, F3 (raw 데이터) | 🟡 |
+| POST | `/api/ask` | `{question, location?}` | 통합 분석 객체 | F9 | ⚪ |
+| POST | `/api/region` | `{address, keyword}` | `{score, residentAges, consumerAges}` | F4 | ⚪ |
+| POST | `/api/simulate` | `{unitCost, price, dailySales, exitWeek}` | `{breakEvenWeek, profit}` | F6 | ⚪ |
 | GET | `/api/cases?pattern=X` | - | 과거 사례 배열 | F7 | ⚪ |
-| GET | `/api/health` | - | `{ok: true}` | 헬스체크 | ⚪ |
+
+> `/api/trend` 는 STEP 3 에서는 raw 데이터만 반환. STEP 6 에서 수명주기 단계(`stage`) + EXIT 시점(`exitWeek`) 판별 로직이 추가될 예정.
 
 ---
 
-## 🔄 데이터 흐름 (메인 시나리오)
+## 🌐 외부 API 호출 명세
+
+### 네이버 DataLab 검색어 트렌드
+- **엔드포인트**: `POST https://openapi.naver.com/v1/datalab/search`
+- **인증**: `X-Naver-Client-Id`, `X-Naver-Client-Secret` 헤더
+- **요청 바디**:
+  ```json
+  {
+    "startDate": "2024-MM-DD",
+    "endDate":   "2024-MM-DD",
+    "timeUnit":  "week",
+    "keywordGroups": [
+      {"groupName": "키워드", "keywords": ["키워드"]}
+    ]
+  }
+  ```
+- **응답**: `results[0].data` 배열에 `{period, ratio}` 형태로 시계열
+- **주의**: ratio 는 **상대값** (기간 내 최댓값 = 100 으로 정규화)
+
+---
+
+## 🔄 데이터 흐름 (메인 시나리오, 최종 목표)
 
 ```
 사용자: "지금 두쫀쿠 들어가도 될까요?" + 가게 위치 입력
            ↓
 [POST /api/ask]
      │
-     ├─→ /api/trend     (DataLab 12주치 검색량)
+     ├─→ /api/trend     (DataLab 12주치 검색량) 🟡
      ├─→ /api/region    (지역 인구 + 소비 연령)
      ├─→ /api/cases     (유사 패턴 과거 사례)
      │
      ▼ 모두 모아서
    Claude API에 통합 프롬프트 던짐
      ▼
-   {
-     decision: "WAIT",
-     stage: "정점",
-     exitWeek: 2.3,
-     regionScore: 35,
-     similarCases: [대만카스테라, ...],
-     reasoning: "...",
-     alternatives: [...]
-   }
+   {decision, stage, exitWeek, regionScore, similarCases, reasoning, alternatives}
            ↓
 프론트가 결과를 컴포넌트에 분배 렌더링
-           ↓
-사용자가 Simulator에 발주량/단가 입력 → 손익분기 계산
 ```
 
 ---
 
 ## 🎨 UI 설계 (모바일 적응형)
-
-**한 페이지 SPA**, 위에서 아래로 흐름:
 
 | 영역 | 모바일 (~768px) | 데스크톱 (≥1024px) |
 |---|---|---|
@@ -153,45 +155,27 @@ ExEAT/
 **디자인 톤** (잠정 B안):
 - 배경: `#FAFAF7` 오프화이트
 - 본문: `#1A1A1A`
-- GO: `#2D7A4F`(녹) / WAIT: `#C9883A`(주황) / STOP: `#C13B3B`(적)
-- 헤딩: Pretendard Bold
-- 본문: Pretendard Regular
+- GO: `#2D7A4F` / WAIT: `#C9883A` / STOP: `#C13B3B`
+- 헤딩/본문: Pretendard
 - 숫자/그래프 라벨: JetBrains Mono
 
 ---
 
-## 🧠 핵심 알고리즘: 수명주기 단계 판별
+## 🧠 핵심 알고리즘: 수명주기 단계 판별 (STEP 6 예정)
 
-DataLab에서 받은 12주치 검색량 시계열을 입력으로:
-
-1. **이동평균 (4주 윈도우)** 으로 노이즈 제거
-2. **1차 미분** 으로 상승/하락 추세 판정
-3. **2차 미분** 으로 변곡점 탐지
-4. 단계 분류:
-   - 도입기: 검색량 낮고 상승 중
-   - 성장기: 1차 미분 양 + 큰 값
-   - 정점: 1차 미분 부호 전환 직전/직후
-   - 쇠퇴기: 1차 미분 음 + 지속
-
-5. **EXIT 시점 예측**: 현재 기울기 + 과거 유사 패턴으로 50% 하락 시점 추정
-
-> 자세한 구현은 `backend/services/lifecycle.py` (예정)
+12주치 시계열에서:
+1. 이동평균(4주) 으로 노이즈 제거
+2. 1차 미분 → 추세 (상승/하락)
+3. 2차 미분 → 변곡점 탐지
+4. 단계 분류 (도입기 / 성장기 / 정점 / 쇠퇴기)
+5. EXIT 시점 추정 (50% 하락 예상 시점)
 
 ---
 
-## ⚠️ 알려진 제약 / 리스크
+## ⚠️ 알려진 제약
 
-- 네이버 DataLab은 **상대값(0~100)** 만 제공 → 절대 검색량 추정 어려움
-- 데이터 점이 적어 (최대 12주) 정확도보다 **추세 방향성** 위주로 해석
-- F7 케이스 라이브러리는 **수기 큐레이션** 데이터 (실시간 학습 X)
-- 해커톤 데모는 **localhost** 시연 — 배포는 후순위
-
----
-
-## 🔗 외부 의존성
-
-| 서비스 | 용도 | 키 필요 | 무료 여부 |
-|---|---|---|---|
-| 네이버 DataLab | 검색어 트렌드 12주치 | ✅ | ✅ |
-| Anthropic Claude | AI 추론 / 통합 분석 | ✅ | ❌ (유료) |
-| 행정안전부 인구통계 | 행정동 거주 인구 | ❌ (CSV) | ✅ |
+- 네이버 DataLab은 **상대값(0~100)** 만 제공 → 절대 검색량 비교 어려움
+- 12주 시계열로 추세 방향성 위주 해석
+- F7 케이스 라이브러리는 **수기 큐레이션**
+- macOS 5000 포트 AirPlay 충돌 → **5001 사용**
+- 해커톤 데모는 **localhost** 시연 (배포 후순위)

@@ -11,8 +11,11 @@ health_bp = Blueprint("health", __name__)
 
 @health_bp.route("/health", methods=["GET"])
 def health_check():
-    return jsonify({
-        "ok": True,
-        "service": "ExEAT API",
-        "message": "유행이 끝나는 순간을 봅니다."
-    })
+    return jsonify(
+        {
+            "ok": True,
+            "service": "ExEAT API",
+            "message": "유행이 끝나는 순간을 봅니다.",
+        }
+    )
+

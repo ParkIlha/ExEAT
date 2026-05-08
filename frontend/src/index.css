@@ -1,0 +1,40 @@
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --color-bg:      #FAFAF7;
+  --color-surface: #F2F2EE;
+  --color-border:  #E4E4DF;
+  --color-ink:     #1A1A1A;
+  --color-muted:   #6B6B67;
+
+  --color-go:      #2D7A4F;
+  --color-go-bg:   #EAF4EF;
+  --color-wait:    #C9883A;
+  --color-wait-bg: #FDF3E7;
+  --color-stop:    #C13B3B;
+  --color-stop-bg: #FAEAEA;
+
+  --font-sans: 'Pretendard', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body, #root {
+  min-height: 100svh;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}

@@ -15,10 +15,14 @@ load_dotenv()
 
 # Blueprint import
 from routes.health import health_bp
+from routes.trend import trend_bp
 
 
 def create_app():
     app = Flask(__name__)
+
+    # 한글 응답이 \uXXXX 로 깨지지 않게
+    app.json.ensure_ascii = False
 
     # CORS: React 개발서버(Vite=5173, CRA=3000)에서 호출 허용
     CORS(app, origins=[
@@ -26,8 +30,9 @@ def create_app():
         "http://localhost:3000",
     ])
 
-    # 라우터 등록 — 모든 API는 /api 로 시작
+    # 라우터 등록 — 모든 API 는 /api 로 시작
     app.register_blueprint(health_bp, url_prefix="/api")
+    app.register_blueprint(trend_bp, url_prefix="/api")
 
     return app
 
@@ -39,8 +44,9 @@ if __name__ == "__main__":
     debug = os.getenv("FLASK_ENV", "production") == "development"
 
     print(f"\n🚪 ExEAT 서버 시작: http://localhost:{port}")
-    print(f"   헬스체크: http://localhost:{port}/api/health\n")
+    print(f"   헬스체크: http://localhost:{port}/api/health")
+    print(f"   트렌드:   POST http://localhost:{port}/api/trend\n")
 
-    app.run(host="0.0.0.0", port=port, debug=debug)
-app = Flask(__name__)
-app.json.ensure_ascii = False  # 한글 그대로 출력
+    # macOS 환경에서 debug reloader(fsevents/watchdog)가 종종 터져서,
+    # 개발 편의성보다 "항상 안정적으로 뜨는" 쪽을 우선한다.
+    app.run(host="0.0.0.0", port=port, debug=debug, use_reloader=False)
