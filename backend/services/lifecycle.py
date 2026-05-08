@@ -54,6 +54,58 @@ _ITEM_TYPE_MAP: dict[tuple[str, str], str] = {
 }
 
 
+def _detect_seasonal(
+    ratios_l: list[float],
+    weeks_long: list[dict] | None,
+) -> dict | None:
+    """
+    연간 계절성 패턴 감지 (최소 40주 필요).
+    (max-min)/mean > 1.5 이면 계절성 메뉴로 분류.
+
+    Returns:
+        {"isSeasonal": True, "peakMonth": int, "seasonPhase": str, "seasonStrength": float}
+        or None
+    """
+    if len(ratios_l) < 40 or not weeks_long:
+        return None
+
+    arr_l   = np.array(ratios_l)
+    avg_l   = float(np.mean(arr_l))
+    if avg_l <= 0:
+        return None
+
+    strength = (float(np.max(arr_l)) - float(np.min(arr_l))) / avg_l
+    if strength < 1.5:
+        return None
+
+    peak_idx = int(np.argmax(arr_l))
+    peak_period = weeks_long[peak_idx].get("period", "") if peak_idx < len(weeks_long) else ""
+    try:
+        peak_month = int(peak_period.split("-")[1])
+    except Exception:
+        return None
+
+    from datetime import date as _d
+    cur = _d.today().month
+    diff = min(abs(cur - peak_month), 12 - abs(cur - peak_month))
+
+    if diff == 0:
+        phase = "peak_season"
+    elif diff <= 2:
+        phase = "pre_season"
+    elif diff <= 4:
+        phase = "approaching"
+    else:
+        phase = "off_season"
+
+    return {
+        "isSeasonal":    True,
+        "peakMonth":     peak_month,
+        "seasonPhase":   phase,
+        "seasonStrength": round(strength, 2),
+    }
+
+
 def _find_inflection(smoothed: list[float]) -> int | None:
     """1차 도함수 부호가 마지막으로 바뀐 인덱스."""
     if len(smoothed) < 4:
@@ -203,6 +255,18 @@ def analyze_lifecycle(
     item_type  = _ITEM_TYPE_MAP.get((nature, cycle), "stable")
     stage      = _STAGE_MAP.get(cycle, "stable")
 
+    # ─── 8. 계절성 감지 ─────────────────────────────────────────────────────
+    seasonal = _detect_seasonal(ratios_l, weeks_long)
+    if seasonal:
+        phase = seasonal["seasonPhase"]
+        # 계절성 메뉴가 시즌 접근 중인데 STOP으로 찍혔다면 AI에게 재판단 맡김
+        if phase in ("pre_season", "approaching") and cycle in ("FADED", "DECLINING"):
+            verdict        = "WAIT"
+            verdict_detail = "SEASONAL_WAIT"
+            confidence     = 0.5
+            skip_ai        = False  # Gemini가 계절 맥락으로 최종 판단
+        item_type = "seasonal"
+
     return {
         # 기존 필드 (UI 호환 — verdict는 반드시 GO/WAIT/STOP)
         "stage":          stage,
@@ -230,6 +294,10 @@ def analyze_lifecycle(
         "rSquared":       round(r_squared, 3),
         "slope":          round(slope, 3),
         "peakToAvg":      round(peak_to_avg, 2),
+        # 계절성
+        "isSeasonal":     seasonal["isSeasonal"] if seasonal else False,
+        "seasonPhase":    seasonal["seasonPhase"] if seasonal else None,
+        "peakMonth":      seasonal["peakMonth"] if seasonal else None,
     }
 
 

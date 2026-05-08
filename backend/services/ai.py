@@ -164,7 +164,20 @@ def _build_prompt(
         "가을 (9~11월, 따뜻한 음료·구황작물 수요)" if _m in (9, 10, 11) else
         "겨울 (12~2월, 붕어빵·호떡·핫초코 등 온열 수요)"
     )
-    season_ctx = f"\n[현재 시점] {_date.today().strftime('%Y년 %m월')} — {_season}\n※ 계절성 메뉴(빙수·팥빙수·아이스·딸기 등)는 현재 계절 수요 흐름을 반드시 반영할 것."
+    _seasonal_note = ""
+    if lifecycle.get("isSeasonal"):
+        _phase_kr = {
+            "peak_season": "현재 성수기",
+            "pre_season":  "성수기 직전 (2개월 이내)",
+            "approaching": "성수기 접근 중 (3~4개월)",
+            "off_season":  "비수기",
+        }.get(lifecycle.get("seasonPhase", ""), "")
+        _peak_m = lifecycle.get("peakMonth")
+        _seasonal_note = (
+            f"\n⚠️ 계절성 메뉴 감지: 연간 피크월={_peak_m}월, 현재 시즌 위치={_phase_kr}. "
+            f"비수기 저점을 한물감으로 오판하지 말 것. 시즌 위치 기반으로 verdict 재판단 필수."
+        )
+    season_ctx = f"\n[현재 시점] {_date.today().strftime('%Y년 %m월')} — {_season}{_seasonal_note}"
 
     # 최근 4주 요약만 포함 (raw 전체 데이터 제거 → 토큰 절감)
     recent_summary = ", ".join(
