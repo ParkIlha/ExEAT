@@ -60,8 +60,7 @@ function Header() {
       <header className="sticky top-0 z-20 border-b border-border/40 acrylic" style={{ boxShadow: 'var(--shadow-4)' }}>
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-3">
           <NavLink to="/" className="flex items-center gap-2 shrink-0 min-w-0">
-            <img src="/logo.png" alt="ExEAT" className="w-7 h-7 object-contain" />
-            <span className="font-semibold text-sm tracking-tight truncate">ExEAT</span>
+            <img src="/logo.png" alt="ExEAT" className="h-6 w-auto object-contain" />
             <span className="text-[10px] text-muted-foreground hidden lg:inline truncate">
               외식 트렌드 EXIT 진단
             </span>
