@@ -8,7 +8,6 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import TrendingSection from '@/components/TrendingSection'
 import RecommendedSection from '@/components/RecommendedSection'
-import OnboardingModal from '@/components/OnboardingModal'
 import { useAnalysis } from '@/store/analysis'
 
 const EXAMPLES = [
@@ -39,7 +38,6 @@ const FEATURES = [
 export default function Home() {
   const { lastKeyword, setLastKeyword, userProfile } = useAnalysis()
   const navigate = useNavigate()
-  const [showOnboarding, setShowOnboarding] = useState(!userProfile)
 
   function go(kw?: string) {
     const target = (kw ?? lastKeyword).trim()
@@ -50,10 +48,6 @@ export default function Home() {
 
   return (
     <div className="flex flex-col">
-      {showOnboarding && (
-        <OnboardingModal onDone={() => setShowOnboarding(false)} />
-      )}
-
       {/* ── 풀스크린 히어로 ── */}
       <section className="min-h-[calc(100svh-3.5rem)] flex flex-col items-center justify-center text-center px-4 py-12 relative overflow-hidden">
 
