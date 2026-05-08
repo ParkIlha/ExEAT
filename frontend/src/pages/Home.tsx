@@ -7,6 +7,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import TrendingSection from '@/components/TrendingSection'
+import RecommendedSection from '@/components/RecommendedSection'
 import OnboardingModal from '@/components/OnboardingModal'
 import { useAnalysis } from '@/store/analysis'
 
@@ -252,6 +253,9 @@ export default function Home() {
 
       {/* ── 요즘 뜨는 메뉴 ── */}
       <TrendingSection />
+
+      {/* ── 알고리즘 추천 메뉴 ── */}
+      <RecommendedSection />
 
       {/* ── 기능 카드 3개 ── */}
       <section className="max-w-3xl mx-auto w-full px-4 sm:px-6 py-16 sm:py-20">
