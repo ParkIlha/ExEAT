@@ -92,13 +92,11 @@ ExEAT/
 | 메서드 | 경로 | 입력 | 출력 | 담당 기능 | 상태 |
 |---|---|---|---|---|---|
 | GET | `/api/health` | - | `{ok, service, message}` | 헬스체크 | 🟢 |
-| POST | `/api/trend` | `{keyword}` | `{keyword, startDate, endDate, weeks: [{period, ratio}]}` | F1, F3 (raw 데이터) | 🟡 |
-| POST | `/api/ask` | `{question, location?}` | 통합 분석 객체 | F9 | ⚪ |
+| POST | `/api/trend` | `{keyword}` | `{keyword, startDate, endDate, weeks, stage, verdict, exitWeek, ...}` | F1, F3 | 🟢 |
+| POST | `/api/ask` | `{keyword}` | trend 응답 + `{reasoning, verdict (AI override)}` | F9 메인 | 🟢 |
+| GET | `/api/cases` | `?pattern=X` | 과거 사례 배열 | F7 | 🟢 |
+| POST | `/api/simulate` | `{unitCost, price, dailySales, exitWeek?, fixedCost?}` | `{marginPer, weeklyProfit, breakEvenWeek, weeks, profitBeforeExit}` | F6 | 🟢 |
 | POST | `/api/region` | `{address, keyword}` | `{score, residentAges, consumerAges}` | F4 | ⚪ |
-| POST | `/api/simulate` | `{unitCost, price, dailySales, exitWeek}` | `{breakEvenWeek, profit}` | F6 | ⚪ |
-| GET | `/api/cases?pattern=X` | - | 과거 사례 배열 | F7 | ⚪ |
-
-> `/api/trend` 는 STEP 3 에서는 raw 데이터만 반환. STEP 6 에서 수명주기 단계(`stage`) + EXIT 시점(`exitWeek`) 판별 로직이 추가될 예정.
 
 ---
 

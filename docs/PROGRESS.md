@@ -1,13 +1,12 @@
 # 📊 ExEAT 개발 진행도
 
-> **롤링 업데이트 규칙**: STEP 완료 시 이전 STEP 상세 섹션은 삭제하고, 현재 STEP 섹션 1개만 남긴다.
-> 새 Claude는 이 파일을 읽자마자 "바로 다음에 할 것" 섹션만 보고 질문 없이 코딩 시작한다.
+> **롤링 룰**: STEP 완료 시 상세 섹션 삭제 → 테이블 비고에만 남김. 현재 STEP + "바로 다음에 할 것" 섹션만 유지.
 
 ---
 
 ## 🎯 현재 위치
 
-**STEP 9 완료 / STEP 7 진행 예정** — 과거 케이스 라이브러리 (`data/cases.json`)
+**핵심 7개 기능 중 6개 완료** (F1, F2, F3, F6, F7, F9). 다음은 **STEP 11 UI 마감** 또는 **BACKLOG 우선순위 1 (쇼핑인사이트)** 둘 중 하나.
 
 ---
 
@@ -15,72 +14,98 @@
 
 | STEP | 내용 | 상태 | 비고 |
 |---|---|---|---|
-| 0 | 기획 — 문제정의 + 기능 명세 + 설계도 v2 합의 | 🟢 | 카페 창업자 타겟 / 7개 기능 |
-| 1 | GitHub 레포 초기화 | 🟢 | https://github.com/ParkIlha/ExEAT |
-| 2 | Flask 백엔드 기본 골격 — `/api/health` | 🟢 | 5001 포트 / `routes/health.py` |
-| 3 | 네이버 DataLab API 연동 — `/api/trend` | 🟡 | 코드 완료. `.env`에 NAVER 키 입력 후 curl 확인 대기 |
-| 4 | React + Vite + Tailwind + shadcn/ui 프론트 골격 | 🟢 | Tailwind v4 + 디자인 토큰 + AskBox/VerdictCard/TrendChart 자리 완료 |
-| 5 | TrendChart 컴포넌트 — 그래프 시각화 | 🟢 | recharts AreaChart + 4주 평균 기준선 |
-| 6 | 수명주기 단계 판별 로직 (`services/lifecycle.py`) | 🟢 | 4주 이동평균 + 1차미분 → rising/peak/declining/stable |
-| 7 | 과거 케이스 라이브러리 (`data/cases.json`) | ⚪ | F7 |
-| 8 | 지역 인구 데이터 (`data/population.csv`) | ⚪ | F4 |
-| 9 | Claude API 연동 — `/api/ask` 통합 분석 | 🟢 | claude-opus-4-5, 판정+근거 200자 이내 |
-| 10 | 손익분기 시뮬레이터 — `/api/simulate` | ⚪ | F6 |
-| 11 | UI 디자인 마감 + 모바일 반응형 | ⚪ | |
-| 12 | README 실행 방법 작성 | ⚪ | |
-| 13 | 최종 git push + 제출 | ⚪ | |
+| 0 | 기획 | 🟢 | 7개 기능, 화이트 미니멀 톤 |
+| 1 | GitHub 레포 | 🟢 | https://github.com/ParkIlha/ExEAT |
+| 2 | Flask 골격 + `/api/health` | 🟢 | 5001 포트 |
+| 3 | 네이버 DataLab `/api/trend` | 🟢 | 12주 시계열 |
+| 4 | React + Vite + Tailwind + shadcn | 🟢 | 디자인 토큰 + 레이아웃 |
+| 5 | TrendChart (recharts) | 🟢 | AreaChart + 4주평균선 + 단계 색상 |
+| 6 | 수명주기 lifecycle.py | 🟢 | rising/peak/declining/stable + exitWeek |
+| 7 | 과거 케이스 라이브러리 | 🟢 | 6개 사례 (대만카스테라/탕후루 등) |
+| 8 | 지역 인구 데이터 (F4) | ⚪ | population.csv + region.py |
+| 9 | Claude API `/api/ask` | 🟢 | claude-opus-4-5 통합 판정 |
+| 10 | 손익분기 시뮬레이터 | 🟢 | Simulator + 누적수익 그래프 |
+| 11 | UI 마감 + 모바일 반응형 | ⚪ | |
+| 12 | README 실행 방법 | ⚪ | |
+| 13 | 최종 push + 제출 | ⚪ | |
 
 ---
 
-## 🔑 환경변수 발급 상태
+## 🔑 환경변수 상태
 
-| 변수 | 상태 | 비고 |
-|---|---|---|
-| `FLASK_PORT` | ✅ 5001 | 5000은 macOS AirPlay 충돌 |
-| `NAVER_CLIENT_ID` | ✅ 입력 완료 | |
-| `NAVER_CLIENT_SECRET` | ✅ 입력 완료 | |
-| `ANTHROPIC_API_KEY` | ⚠ 입력 필요 | `backend/.env`에 추가해야 `/api/ask` 동작 |
-
----
-
-## 🚧 미해결 결정 사항
-
-- [ ] 디자인 톤 최종 확정 (B안: 화이트 미니멀 잠정)
-- [ ] 서비스명 ExEAT 로고/타이포 처리
+| 변수 | 상태 |
+|---|---|
+| `FLASK_PORT` | ✅ 5001 |
+| `NAVER_CLIENT_ID` | ✅ |
+| `NAVER_CLIENT_SECRET` | ✅ |
+| `ANTHROPIC_API_KEY` | ✅ (`/api/ask` 동작용) |
 
 ---
 
-## 🔄 현재 STEP 9 완료 — Claude AI 통합 분석
+## 📂 현재 백엔드/프론트엔드 구조
 
-**완료된 것 (STEP 6 + 9)**:
-- `backend/services/lifecycle.py` — 4주 이동평균 + 1차 미분으로 단계 판별
-- `backend/services/claude.py` — Anthropic SDK, claude-opus-4-5, 200자 이내 판정
-- `backend/routes/ask.py` — `/api/ask` = trend + lifecycle + Claude 통합 응답
-- `backend/routes/trend.py` — `/api/trend`에도 lifecycle 필드 포함
-- `frontend/src/App.tsx` — `/api/ask` 사용, AI reasoning 섹션 표시
+```
+backend/
+├── app.py                 # Blueprint 등록 (health/trend/ask/cases/simulate)
+├── routes/
+│   ├── health.py          # GET  /api/health
+│   ├── trend.py           # POST /api/trend       (DataLab + lifecycle)
+│   ├── ask.py             # POST /api/ask         (DataLab + lifecycle + Claude) ← F9 메인
+│   ├── cases.py           # GET  /api/cases       (?pattern= 필터)
+│   └── simulate.py        # POST /api/simulate    (손익분기)
+├── services/
+│   ├── naver.py           # DataLab 클라이언트
+│   ├── lifecycle.py       # 단계 판별 (4주 이동평균 + 1차 미분)
+│   └── claude.py          # Anthropic SDK
+└── data/
+    └── cases.json         # 6개 과거 사례
 
-**⚠ 실행 전 필수**: `backend/.env`에 `ANTHROPIC_API_KEY` 추가
+frontend/src/
+├── App.tsx                # 헤더 + AskBox + VerdictCard + Simulator + CaseLibrary + TrendChart
+├── index.css              # ExEAT 디자인 토큰 + shadcn 변수
+└── components/
+    ├── TrendChart.tsx     # recharts AreaChart
+    ├── CaseLibrary.tsx    # 아코디언 사례 목록
+    ├── Simulator.tsx      # 손익분기 입력 + 그래프
+    └── ui/                # shadcn (Button, Card, Input, Badge, Separator)
+```
 
 ---
 
-## ⚡ 바로 다음에 할 것 (새 Claude는 여기서 바로 시작)
+## ⚡ 바로 다음에 할 것 (새 Claude는 여기서 시작)
 
-**지금 해야 할 작업: STEP 7 — 과거 케이스 라이브러리**
+**둘 중 하나 선택. 사용자에게 어디부터 갈지 물어봐.**
 
-1. `backend/data/cases.json` 생성 — 대만카스테라, 흑당버블티 등 5~7개 사례
-   - 스키마: `[{ id, name, pattern, peakYear, status, summary, keywords }]`
-   - pattern: `"sudden_rise_fall"` / `"gradual_decline"` / `"steady"` / `"seasonal"`
-2. `backend/routes/cases.py` — `GET /api/cases` + `GET /api/cases?pattern=X`
-3. `backend/app.py` — `cases_bp` 등록
-4. `frontend/src/components/CaseLibrary.tsx` — 유사 패턴 사례 카드 목록
-5. `frontend/src/App.tsx` — 분석 후 `pattern` 기반으로 유사 사례 자동 표시
-6. 완료 후 STEP 10 (손익분기 시뮬레이터) 진행
+### 옵션 A — STEP 11: UI 마감 + 모바일 반응형
+1. 모바일(~480px) / 태블릿(481~768px) / 데스크톱(769px+) 3단계 반응형
+2. 카드 그림자/간격/타이포 세부 조정
+3. 로딩 스켈레톤 (shadcn `skeleton` 추가)
+4. 에러 토스트 (shadcn `sonner` 추가)
+5. 헤더 로고 처리 (텍스트만? 심볼?)
 
-**실행 방법**:
-```bash
-# 터미널 1 (백엔드)
-cd backend && FLASK_PORT=5001 FLASK_ENV=development python app.py
+### 옵션 B — BACKLOG 1순위: 네이버 쇼핑인사이트 API 추가
+- **왜**: 검색량 외에 "구매 직전 시그널" 추가로 데이터 신뢰도 ↑
+- **구현**:
+  1. `services/naver.py`에 `fetch_shopping_trend(keyword, category)` 추가
+  2. `routes/ask.py`에서 trend + shopping 동시 호출 → Claude에 함께 전달
+  3. `App.tsx`에 "쇼핑 트렌드" 라인 추가 (TrendChart 두 번째 라인)
+- 30~60분 예상
 
-# 터미널 2 (프론트)
-cd frontend && npm run dev
+### 옵션 C — STEP 8 (F4 지역 적합도)
+- 행정안전부 주민등록 CSV 다운로드 → `backend/data/population.csv`
+- `services/region.py` 작성 (지역 코드 → 연령 분포)
+- `routes/region.py` `/api/region` 엔드포인트
+- `App.tsx`에 RegionPanel 카드 추가
+
+---
+
+## 🎨 디자인 토큰 (변경 시 `frontend/src/index.css` 수정)
+
+```
+배경:  #FAFAF7
+본문:  #1A1A1A
+GO:    #2D7A4F  /  GO bg:    #EAF4EF
+WAIT:  #C9883A  /  WAIT bg:  #FDF3E7
+STOP:  #C13B3B  /  STOP bg:  #FAEAEA
+폰트:  Pretendard (본문) + JetBrains Mono (숫자/라벨)
 ```
