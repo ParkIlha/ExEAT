@@ -101,15 +101,8 @@ function Header() {
 function Footer() {
   return (
     <footer className="border-t border-border/60 px-4 py-5 text-[13px] text-muted-foreground">
-      <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-6">
+      <div className="max-w-6xl mx-auto flex items-center justify-center">
         <span>ExEAT · 외식 트렌드 EXIT 타이밍 진단 · 네이버 DataLab + AI</span>
-        <button
-          type="button"
-          onClick={() => clearAllCaches()}
-          className="text-[13px] underline underline-offset-2 hover:text-foreground transition-colors"
-        >
-          로컬·서버 캐시 초기화
-        </button>
       </div>
     </footer>
   )
