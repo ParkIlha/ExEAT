@@ -4,7 +4,10 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useAnalysis } from '@/store/analysis'
 
-const EXAMPLES = ['두바이초콜릿', '흑당버블티', '탕후루', '크로플', '마라탕', '티라미수']
+const EXAMPLES = [
+  '두바이초콜릿', '탕후루', '크로플', '마라탕', '흑당버블티',
+  '카이막', '베이글', '도넛', '하이볼', '양꼬치',
+]
 
 const FEATURES = [
   {
@@ -53,7 +56,7 @@ export default function Home() {
           className="inline-flex items-center gap-2 text-[11px] sm:text-xs text-muted-foreground border border-border bg-background/80 backdrop-blur rounded-full px-3 py-1.5 mb-8"
         >
           <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-stop)]" />
-          트렌드 메뉴 따라 창업했다가 재고만 남긴 카페들을 위해
+          트렌드 메뉴 따라 들였다가 재고만 남긴 외식업 사장님들을 위해
         </motion.div>
 
         {/* 메인 카피 */}
@@ -63,8 +66,8 @@ export default function Home() {
           transition={{ duration: 0.5, delay: 0.05 }}
           className="text-3xl sm:text-5xl font-bold tracking-tight mb-5 leading-[1.15]"
         >
-          지금 이 메뉴,<br />
-          <span className="text-[var(--color-stop)]">EXIT</span> 타이밍은 언제일까요?
+          이 메뉴, 지금 들여도<br />
+          괜찮은 <span className="text-[var(--color-stop)]">타이밍</span>일까?
         </motion.h1>
 
         <motion.p
@@ -73,7 +76,7 @@ export default function Home() {
           transition={{ duration: 0.5, delay: 0.1 }}
           className="text-sm sm:text-base text-muted-foreground max-w-md mb-10 leading-relaxed"
         >
-          네이버 검색 트렌드 + AI 분석으로<br className="sm:hidden" /> GO / WAIT / STOP을 5초 안에 판정합니다.
+          외식 트렌드 데이터 + AI 분석으로<br className="sm:hidden" /> GO / WAIT / STOP을 5초 안에 판정합니다.
         </motion.p>
 
         {/* 검색 박스 */}

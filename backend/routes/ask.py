@@ -24,24 +24,32 @@ def ask():
         return jsonify({"error": "keyword 가 필요합니다."}), 400
 
     try:
-        # 1. 네이버 DataLab 트렌드 + 쇼핑인사이트 (병렬 느낌으로 순차 호출)
+        # 1. 네이버 DataLab 트렌드 + 쇼핑인사이트
         trend = fetch_trend(keyword)
         shopping_weeks = fetch_shopping_trend(keyword)  # 실패 시 [] 반환
 
-        # 2. 수명주기 분석
+        # 2. 수명주기 + 심층 분석 (모멘텀/변동성/예측/위험도)
         lifecycle = analyze_lifecycle(trend["weeks"])
 
-        # 3. Claude AI 종합 판정
-        ai_result = ask_claude(keyword, lifecycle, trend["weeks"])
+        # 3. AI 액션 플랜 생성
+        ai_result = ask_claude(keyword, lifecycle, trend["weeks"], shopping_weeks or None)
 
         resp = {
             "keyword":       keyword,
             "startDate":     trend["startDate"],
             "endDate":       trend["endDate"],
             "weeks":         trend["weeks"],
-            **lifecycle,
-            "reasoning":     ai_result["reasoning"],
+            **lifecycle,                          # 모든 분석 메트릭 포함
             "verdict":       ai_result["verdict"],
+            "summary":       ai_result["summary"],
+            "reasoning":     ai_result["reasoning"],
+            "actionPlan": {
+                "immediate":    ai_result["immediate"],
+                "shortterm":    ai_result["shortterm"],
+                "midterm":      ai_result["midterm"],
+                "worstCase":    ai_result["worstCase"],
+                "alternatives": ai_result["alternatives"],
+            },
         }
         if shopping_weeks:
             resp["shoppingWeeks"] = shopping_weeks

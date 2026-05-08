@@ -5,6 +5,16 @@ export type TrendPoint = { period: string; ratio: number }
 export type Verdict = 'GO' | 'WAIT' | 'STOP'
 export type Stage = 'rising' | 'peak' | 'declining' | 'stable'
 
+export type ForecastPoint = { week: number; ratio: number }
+
+export type ActionPlan = {
+  immediate:    string[]
+  shortterm:    string[]
+  midterm:      string[]
+  worstCase:    string
+  alternatives: string[]
+}
+
 export type TrendResult = {
   keyword: string
   startDate: string
@@ -19,7 +29,17 @@ export type TrendResult = {
   currentRatio: number
   avgRecent: number
   avgPrev: number
-  reasoning?: string
+  // 신규 분석 메트릭
+  momentum:        number
+  volatility:      number
+  peakDecay:       number
+  inflectionWeek:  number | null
+  forecast:        ForecastPoint[]
+  riskScore:       number
+  // AI 액션 플랜
+  summary?:    string
+  reasoning?:  string
+  actionPlan?: ActionPlan
 }
 
 export type SimInput = {

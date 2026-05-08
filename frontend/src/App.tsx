@@ -30,7 +30,7 @@ function Header() {
       <div className="max-w-3xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
         <NavLink to="/" className="flex items-baseline gap-2 shrink-0">
           <span className="font-bold text-base tracking-tight">ExEAT</span>
-          <span className="text-[10px] text-muted-foreground hidden sm:block">EXIT 타이밍 진단</span>
+          <span className="text-[10px] text-muted-foreground hidden sm:block">외식 트렌드 EXIT 진단</span>
         </NavLink>
 
         <nav className="flex items-center gap-1">
@@ -69,7 +69,7 @@ function Header() {
 function Footer() {
   return (
     <footer className="border-t border-border/60 px-4 py-5 text-[11px] text-muted-foreground text-center">
-      ExEAT · 카페 트렌드 EXIT 타이밍 진단 · 네이버 DataLab + AI
+      ExEAT · 외식 트렌드 EXIT 타이밍 진단 · 네이버 DataLab + AI
     </footer>
   )
 }

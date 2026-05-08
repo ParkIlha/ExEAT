@@ -11,60 +11,41 @@ import CountUp from '@/components/CountUp'
 import { useAnalysis, type TrendResult, type Verdict } from '@/store/analysis'
 
 const VERDICT_CONFIG: Record<Verdict, {
-  label: string
-  sub: string
-  desc: string
-  color: string
-  bg: string
-  emoji: string
+  label: string; sub: string; desc: string; color: string; bg: string;
 }> = {
   GO: {
     label: 'GO',
     sub: '지금 도입 적기입니다',
     desc: '검색 트렌드가 상승 중입니다. 경쟁자보다 먼저 선점하세요.',
-    color: 'var(--color-go)',
-    bg:    'var(--color-go-bg)',
-    emoji: '🟢',
+    color: 'var(--color-go)', bg: 'var(--color-go-bg)',
   },
   WAIT: {
     label: 'WAIT',
     sub: '조금 더 지켜보세요',
     desc: '트렌드가 정점 또는 안정기입니다. 수익성을 먼저 검토하세요.',
-    color: 'var(--color-wait)',
-    bg:    'var(--color-wait-bg)',
-    emoji: '🟡',
+    color: 'var(--color-wait)', bg: 'var(--color-wait-bg)',
   },
   STOP: {
     label: 'STOP',
     sub: '진입 비추천입니다',
     desc: '검색 트렌드가 하락 중입니다. 재고 소진 계획을 먼저 세우세요.',
-    color: 'var(--color-stop)',
-    bg:    'var(--color-stop-bg)',
-    emoji: '🔴',
+    color: 'var(--color-stop)', bg: 'var(--color-stop-bg)',
   },
 }
 
 const STAGE_LABEL = {
-  rising:    '↑ 상승기',
-  peak:      '▲ 정점',
-  declining: '↓ 하락기',
-  stable:    '— 안정기',
+  rising: '↑ 상승기', peak: '▲ 정점',
+  declining: '↓ 하락기', stable: '— 안정기',
 }
 
 // ─── section wrapper ─────────────────────────────────────────────────────────
 
-function Section({
-  index,
-  children,
-}: {
-  index: number
-  children: React.ReactNode
-}) {
+function Section({ index, children }: { index: number; children: React.ReactNode }) {
   return (
     <motion.section
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay: index * 0.1, ease: [0.16, 1, 0.3, 1] }}
+      transition={{ duration: 0.5, delay: index * 0.08, ease: [0.16, 1, 0.3, 1] }}
       className="w-full"
     >
       {children}
@@ -87,16 +68,10 @@ export default function Result() {
 
   useEffect(() => {
     if (!keyword) return
-
-    // 캐시 있으면 즉시 표시 — 백그라운드 갱신 없음
     if (cached) {
-      setData(cached)
-      setLoading(false)
-      return
+      setData(cached); setLoading(false); return
     }
-
-    setLoading(true)
-    setData(null)
+    setLoading(true); setData(null)
 
     fetch('/api/ask', {
       method: 'POST',
@@ -108,10 +83,7 @@ export default function Result() {
         if (!r.ok) throw new Error((json as { error?: string }).error ?? `오류 ${r.status}`)
         return json as TrendResult
       })
-      .then((d) => {
-        setData(d)
-        setCached(decoded, d)
-      })
+      .then((d) => { setData(d); setCached(decoded, d) })
       .catch((e: Error) => {
         toast.error(e.message, {
           description: '키워드를 확인하거나 잠시 후 다시 시도해주세요.',
@@ -125,7 +97,7 @@ export default function Result() {
   return (
     <div className="max-w-3xl mx-auto w-full px-4 sm:px-6 py-6 sm:py-10 flex flex-col gap-5 sm:gap-6">
 
-      {/* 뒤로 + 키워드 헤더 */}
+      {/* 헤더 */}
       <div className="flex items-center gap-3">
         <button
           type="button"
@@ -147,29 +119,29 @@ export default function Result() {
         {loading ? (
           <motion.div
             key="loading"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="flex flex-col gap-5"
           >
             <Skeleton className="h-64 w-full rounded-3xl" />
             <Skeleton className="h-32 w-full rounded-2xl" />
             <Skeleton className="h-72 w-full rounded-2xl" />
-            <Skeleton className="h-72 w-full rounded-2xl" />
+            <Skeleton className="h-64 w-full rounded-2xl" />
           </motion.div>
         ) : data ? (
           <motion.div
             key="result"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }}
             className="flex flex-col gap-5 sm:gap-6"
           >
             <VerdictHero data={data} />
-            <Section index={1}><MetricsRow data={data} /></Section>
-            <Section index={2}><AIReasoning data={data} /></Section>
-            <Section index={3}><TrendBlock data={data} /></Section>
-            <Section index={4}><RegionBlock stage={data.stage} /></Section>
-            <Section index={5}><SimulatorCTA exitWeek={data.exitWeek} navigate={navigate} /></Section>
+            <Section index={1}><RiskGauge data={data} /></Section>
+            <Section index={2}><MetricsRow data={data} /></Section>
+            <Section index={3}><AISummary data={data} /></Section>
+            <Section index={4}><ActionPlanCard data={data} /></Section>
+            <Section index={5}><WorstCaseCard data={data} /></Section>
+            <Section index={6}><TrendBlock data={data} /></Section>
+            <Section index={7}><RegionBlock stage={data.stage} /></Section>
+            <Section index={8}><SimulatorCTA exitWeek={data.exitWeek} navigate={navigate} /></Section>
           </motion.div>
         ) : null}
       </AnimatePresence>
@@ -177,7 +149,7 @@ export default function Result() {
   )
 }
 
-// ─── 1. Verdict Hero (빅 판정) ────────────────────────────────────────────────
+// ─── 1. Verdict Hero ─────────────────────────────────────────────────────────
 
 function VerdictHero({ data }: { data: TrendResult }) {
   const v = VERDICT_CONFIG[data.verdict]
@@ -190,7 +162,6 @@ function VerdictHero({ data }: { data: TrendResult }) {
       className="relative rounded-3xl p-6 sm:p-8 overflow-hidden border"
       style={{ backgroundColor: v.bg, borderColor: v.color }}
     >
-      {/* 큰 워터마크 글자 */}
       <div
         className="absolute -right-6 -top-2 text-[140px] sm:text-[180px] font-black leading-none opacity-[0.06] pointer-events-none select-none font-mono"
         style={{ color: v.color }}
@@ -214,7 +185,11 @@ function VerdictHero({ data }: { data: TrendResult }) {
         </motion.div>
 
         <p className="font-semibold text-base sm:text-lg mt-1">{v.sub}</p>
-        <p className="text-sm text-muted-foreground max-w-md leading-relaxed">{v.desc}</p>
+
+        {/* AI 한 줄 요약이 있으면 우선 노출, 없으면 기본 desc */}
+        <p className="text-sm text-muted-foreground max-w-md leading-relaxed">
+          {data.summary || v.desc}
+        </p>
 
         {data.exitWeek && (
           <motion.div
@@ -224,9 +199,7 @@ function VerdictHero({ data }: { data: TrendResult }) {
             className="mt-2 inline-flex items-center gap-2 self-start text-xs font-mono bg-background/60 backdrop-blur rounded-lg px-3 py-2 border"
             style={{ borderColor: v.color, color: v.color }}
           >
-            ⚠ 약 <strong>
-              <CountUp to={data.exitWeek} duration={900} />
-            </strong>주 후 검색량 50% 이하 예상
+            ⚠ 약 <strong><CountUp to={data.exitWeek} duration={900} /></strong>주 후 검색량 50% 이하 예상
           </motion.div>
         )}
       </div>
@@ -234,13 +207,70 @@ function VerdictHero({ data }: { data: TrendResult }) {
   )
 }
 
-// ─── 2. Metrics Row (핵심 수치 4개) ──────────────────────────────────────────
+// ─── 2. Risk Gauge ───────────────────────────────────────────────────────────
+
+function RiskGauge({ data }: { data: TrendResult }) {
+  const score = data.riskScore ?? 50
+  const color =
+    score >= 70 ? 'var(--color-stop)' :
+    score >= 40 ? 'var(--color-wait)' :
+    'var(--color-go)'
+  const label =
+    score >= 70 ? '매우 높음' :
+    score >= 40 ? '주의 필요' :
+    '낮음'
+
+  return (
+    <div className="bg-card border border-border rounded-2xl p-5">
+      <div className="flex items-baseline justify-between mb-3 flex-wrap gap-2">
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] font-medium uppercase tracking-widest text-muted-foreground">
+            종합 위험도
+          </span>
+          <Badge variant="outline" className="text-[10px]" style={{ color, borderColor: color }}>
+            {label}
+          </Badge>
+        </div>
+        <span className="font-mono text-2xl font-bold" style={{ color }}>
+          <CountUp to={score} duration={1100} /><span className="text-sm text-muted-foreground">/100</span>
+        </span>
+      </div>
+
+      <div className="h-2 w-full bg-secondary rounded-full overflow-hidden relative">
+        <motion.div
+          initial={{ width: 0 }}
+          animate={{ width: `${score}%` }}
+          transition={{ duration: 1.0, ease: [0.16, 1, 0.3, 1] }}
+          className="h-full rounded-full"
+          style={{ backgroundColor: color }}
+        />
+      </div>
+
+      {/* 위험도 구성 요소 4개 */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-4">
+        {[
+          { label: '정점 대비 하락',  value: `${Math.round((data.peakDecay ?? 0) * 100)}%` },
+          { label: '4주 평균 변화', value: `${(data.avgRecent - data.avgPrev > 0 ? '+' : '')}${(data.avgRecent - data.avgPrev).toFixed(0)}` },
+          { label: '모멘텀',          value: (data.momentum ?? 0).toFixed(1) },
+          { label: '변동성',          value: (data.volatility ?? 0).toFixed(1) },
+        ].map((m) => (
+          <div key={m.label} className="bg-secondary rounded-lg px-2 py-1.5 flex flex-col">
+            <span className="text-[10px] text-muted-foreground">{m.label}</span>
+            <span className="font-mono text-xs font-medium">{m.value}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ─── 3. Metrics Row ──────────────────────────────────────────────────────────
 
 function MetricsRow({ data }: { data: TrendResult }) {
   const items = [
-    { label: '현재 검색량',  value: data.currentRatio, suffix: '' },
-    { label: '최고점',        value: data.peakRatio,    suffix: '' },
-    { label: '4주 평균',      value: data.avgRecent,    suffix: '' },
+    { label: '현재 검색량', value: data.currentRatio, suffix: '' },
+    { label: '최고점',       value: data.peakRatio,    suffix: '' },
+    { label: '4주 평균',     value: data.avgRecent,    suffix: '' },
     {
       label: 'EXIT 예상',
       value: data.exitWeek ?? 0,
@@ -266,30 +296,118 @@ function MetricsRow({ data }: { data: TrendResult }) {
   )
 }
 
-// ─── 3. AI 분석 ──────────────────────────────────────────────────────────────
+// ─── 4. AI Summary ───────────────────────────────────────────────────────────
 
-function AIReasoning({ data }: { data: TrendResult }) {
-  if (!data.reasoning) return null
+function AISummary({ data }: { data: TrendResult }) {
+  if (!data.summary && !data.reasoning) return null
   return (
     <div className="bg-card border border-border rounded-2xl p-5">
       <div className="flex items-center gap-2 mb-3">
         <span className="text-base">✨</span>
         <span className="text-[11px] font-medium uppercase tracking-widest text-muted-foreground">
-          AI 분석
+          AI 분석 요약
         </span>
       </div>
-      <p className="text-sm whitespace-pre-line leading-relaxed">{data.reasoning}</p>
+      <p className="text-sm whitespace-pre-line leading-relaxed">
+        {data.summary || data.reasoning}
+      </p>
     </div>
   )
 }
 
-// ─── 4. Trend ────────────────────────────────────────────────────────────────
+// ─── 5. Action Plan ──────────────────────────────────────────────────────────
+
+function ActionPlanCard({ data }: { data: TrendResult }) {
+  const ap = data.actionPlan
+  if (!ap) return null
+
+  const sections = [
+    { key: 'immediate', label: '즉시 (1주 내)',   color: 'var(--color-stop)',  items: ap.immediate },
+    { key: 'shortterm', label: '단기 (1개월 내)', color: 'var(--color-wait)',  items: ap.shortterm },
+    { key: 'midterm',   label: '중기 (3개월 내)', color: 'var(--color-go)',    items: ap.midterm   },
+  ].filter((s) => s.items && s.items.length > 0)
+
+  if (!sections.length) return null
+
+  return (
+    <div className="bg-card border border-border rounded-2xl p-5">
+      <div className="flex items-center gap-2 mb-4">
+        <span className="text-base">🎯</span>
+        <span className="text-[11px] font-medium uppercase tracking-widest text-muted-foreground">
+          액션 플랜
+        </span>
+      </div>
+
+      <div className="flex flex-col gap-5">
+        {sections.map((s, idx) => (
+          <motion.div
+            key={s.key}
+            initial={{ opacity: 0, x: -8 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.4, delay: idx * 0.08 }}
+            className="flex flex-col gap-2"
+          >
+            <div className="flex items-center gap-2">
+              <span className="w-1 h-3 rounded-full" style={{ backgroundColor: s.color }} />
+              <span className="text-xs font-semibold" style={{ color: s.color }}>{s.label}</span>
+            </div>
+            <ul className="flex flex-col gap-1.5 ml-3">
+              {s.items.map((item, i) => (
+                <li key={i} className="flex items-start gap-2 text-sm leading-relaxed">
+                  <span className="text-muted-foreground mt-0.5">·</span>
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+          </motion.div>
+        ))}
+
+        {/* 대안 메뉴 */}
+        {ap.alternatives && ap.alternatives.length > 0 && (
+          <div className="border-t border-border pt-4 mt-1">
+            <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2">
+              대안 메뉴 후보
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {ap.alternatives.map((alt) => (
+                <Badge key={alt} variant="outline" className="text-xs">
+                  {alt}
+                </Badge>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ─── 6. Worst Case ──────────────────────────────────────────────────────────
+
+function WorstCaseCard({ data }: { data: TrendResult }) {
+  const wc = data.actionPlan?.worstCase
+  if (!wc) return null
+  return (
+    <div className="bg-[var(--color-stop-bg)] border border-[var(--color-stop)]/30 rounded-2xl p-5">
+      <div className="flex items-center gap-2 mb-2">
+        <span className="text-base">⚠</span>
+        <span className="text-[11px] font-medium uppercase tracking-widest text-[var(--color-stop)]">
+          최악의 시나리오
+        </span>
+      </div>
+      <p className="text-sm leading-relaxed">{wc}</p>
+    </div>
+  )
+}
+
+// ─── 7. Trend ────────────────────────────────────────────────────────────────
 
 function TrendBlock({ data }: { data: TrendResult }) {
   return (
     <div className="bg-card border border-border rounded-2xl p-5">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="font-semibold text-sm">검색량 트렌드</h3>
+      <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+        <h3 className="font-semibold text-sm">검색량 트렌드 + 4주 예측</h3>
         <span className="text-[11px] text-muted-foreground font-mono">
           {data.startDate} ~ {data.endDate}
         </span>
@@ -297,14 +415,22 @@ function TrendBlock({ data }: { data: TrendResult }) {
       <TrendChart
         data={data.weeks}
         shoppingData={data.shoppingWeeks}
+        forecast={data.forecast}
+        inflectionWeek={data.inflectionWeek}
         keyword={data.keyword}
         stage={data.stage}
       />
+      {data.inflectionWeek != null && data.weeks[data.inflectionWeek] && (
+        <p className="text-[11px] text-muted-foreground mt-3">
+          · 변곡점 <span className="font-mono">{data.weeks[data.inflectionWeek].period}</span>
+          에서 추세가 전환되었습니다
+        </p>
+      )}
     </div>
   )
 }
 
-// ─── 5. Region ───────────────────────────────────────────────────────────────
+// ─── 8. Region ───────────────────────────────────────────────────────────────
 
 function RegionBlock({ stage }: { stage: TrendResult['stage'] }) {
   return (
@@ -320,7 +446,7 @@ function RegionBlock({ stage }: { stage: TrendResult['stage'] }) {
   )
 }
 
-// ─── 6. Simulator CTA ────────────────────────────────────────────────────────
+// ─── 9. Simulator CTA ────────────────────────────────────────────────────────
 
 function SimulatorCTA({
   exitWeek, navigate,
