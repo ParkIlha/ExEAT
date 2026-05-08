@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import CountUp from '@/components/CountUp'
 
 type RegionItem = { code: string; name: string }
 type RegionResult = {
@@ -94,25 +96,33 @@ export default function RegionPanel({ stage }: Props) {
       </div>
 
       {/* 결과 */}
+      <AnimatePresence>
       {result && (
-        <div className="flex flex-col gap-3">
-          {/* 헤더 */}
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.4 }}
+          className="flex flex-col gap-3"
+        >
           <div className="flex items-center gap-2 flex-wrap">
             <span className="font-medium text-sm">{result.region}</span>
             <Badge variant="outline" className={`text-xs ${VERDICT_STYLE[result.verdict] ?? ''}`}>
               {result.verdict}
             </Badge>
             <span className="text-xs text-muted-foreground font-mono ml-auto">
-              적합도 {result.score}/100
+              적합도 <CountUp to={result.score} duration={1000} className="font-medium text-foreground" />/100
             </span>
           </div>
 
           {/* 점수 바 */}
           <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
-            <div
-              className="h-full rounded-full transition-all duration-500"
+            <motion.div
+              initial={{ width: 0 }}
+              animate={{ width: `${result.score}%` }}
+              transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+              className="h-full rounded-full"
               style={{
-                width: `${result.score}%`,
                 backgroundColor:
                   result.verdict === '적합' ? 'var(--color-go)' :
                   result.verdict === '보통'  ? 'var(--color-wait)' :
@@ -146,8 +156,9 @@ export default function RegionPanel({ stage }: Props) {
             <span>총인구 <span className="font-mono font-medium text-foreground">{(result.total / 10000).toFixed(0)}만</span></span>
             <span>유동인구 <span className="font-mono font-medium text-foreground">{FLOAT_LABEL[result.floating] ?? '보통'}</span></span>
           </div>
-        </div>
+        </motion.div>
       )}
+      </AnimatePresence>
     </div>
   )
 }

@@ -17,7 +17,6 @@ load_dotenv()
 from routes.health import health_bp
 from routes.trend import trend_bp
 from routes.ask import ask_bp
-from routes.cases import cases_bp
 from routes.simulate import simulate_bp
 from routes.region import region_bp
 
@@ -38,7 +37,6 @@ def create_app():
     app.register_blueprint(health_bp, url_prefix="/api")
     app.register_blueprint(trend_bp, url_prefix="/api")
     app.register_blueprint(ask_bp, url_prefix="/api")
-    app.register_blueprint(cases_bp, url_prefix="/api")
     app.register_blueprint(simulate_bp, url_prefix="/api")
     app.register_blueprint(region_bp,   url_prefix="/api")
 
