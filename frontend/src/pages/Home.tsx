@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
-  TrendingDown, BarChart3, Wallet, AlertCircle, ChevronDown, ArrowRight,
+  TrendingDown, BarChart3, Wallet, ChevronDown, ArrowRight,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -17,33 +17,6 @@ const EXAMPLES = [
   '치킨', '떡볶이', '파스타', '타르트', '크룽지',
 ]
 
-// 실제 폐업/트렌드 붕괴 사례 데이터
-const CRISIS_CASES = [
-  {
-    menu: '탕후루',
-    peak: '2023년 8월',
-    stat: '2,500개',
-    statLabel: '전국 가맹점',
-    outcome: '6개월 내 절반 폐업',
-    color: 'var(--color-stop)',
-  },
-  {
-    menu: '대만 카스테라',
-    peak: '2017년',
-    stat: '500+',
-    statLabel: '프랜차이즈 가맹점',
-    outcome: '1년 내 시장 붕괴',
-    color: 'var(--color-stop)',
-  },
-  {
-    menu: '두바이 초콜릿',
-    peak: '2024년 상반기',
-    stat: '-85%',
-    statLabel: '피크 후 6개월 검색량',
-    outcome: '2025년 재고 처리 대란',
-    color: 'var(--color-wait)',
-  },
-]
 
 const FEATURES = [
   {
@@ -171,83 +144,6 @@ export default function Home() {
           className="absolute bottom-6 left-1/2 -translate-x-1/2 text-[10px] text-muted-foreground"
         >
           <span className="inline-flex items-center gap-1"><ChevronDown className="w-3 h-3" /> 더 알아보기</span>
-        </motion.div>
-      </section>
-
-      {/* ── 구조적 문제 섹션 ── */}
-      <section className="max-w-3xl mx-auto w-full px-4 sm:px-6 py-16 sm:py-20">
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: '-80px' }}
-          transition={{ duration: 0.5 }}
-          className="text-center mb-10"
-        >
-          <span className="inline-flex items-center gap-1.5 text-[11px] text-[var(--color-stop)] font-medium border border-[var(--color-stop)]/30 bg-[var(--color-stop-bg)] rounded-full px-3 py-1 mb-4">
-            <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-stop)]" />
-            대중문화의 구조적 문제
-          </span>
-          <h2 className="text-xl sm:text-2xl font-bold tracking-tight mb-3">
-            트렌드는 <span className="text-[var(--color-stop)]">대기업이 만들고</span>,<br />
-            피해는 <span className="text-[var(--color-stop)]">소상공인이 받습니다</span>
-          </h2>
-          <p className="text-sm text-muted-foreground max-w-lg mx-auto leading-relaxed">
-            SNS·미디어가 음식 트렌드를 폭발적으로 키우지만, 정작 언제 빠져나와야 할지 
-            알려주는 데이터는 <strong>대형 프랜차이즈 본사만</strong> 갖고 있습니다.
-          </p>
-        </motion.div>
-
-        {/* 사례 카드 */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-10">
-          {CRISIS_CASES.map((c, i) => (
-            <motion.div
-              key={c.menu}
-              initial={{ opacity: 0, y: 16 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: '-60px' }}
-              transition={{ duration: 0.4, delay: i * 0.1 }}
-              className="fluent-card rounded-2xl p-5 relative overflow-hidden"
-            >
-              <div
-                className="absolute inset-0 opacity-[0.04] pointer-events-none"
-                style={{ background: `radial-gradient(ellipse at 0% 0%, ${c.color} 0%, transparent 70%)` }}
-              />
-              <p className="text-xs text-muted-foreground mb-1">{c.peak} 정점</p>
-              <p className="font-bold text-sm mb-3">{c.menu}</p>
-              <p className="font-mono font-black text-2xl sm:text-3xl mb-0.5" style={{ color: c.color }}>{c.stat}</p>
-              <p className="text-[10px] text-muted-foreground mb-2">{c.statLabel}</p>
-              <div
-                className="text-[11px] font-medium px-2 py-1 rounded-md inline-block"
-                style={{ color: c.color, backgroundColor: c.color + '15' }}
-              >
-                {c.outcome}
-              </div>
-            </motion.div>
-          ))}
-        </div>
-
-        {/* 정보 비대칭 강조 */}
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: '-60px' }}
-          transition={{ duration: 0.4, delay: 0.2 }}
-          className="fluent-card rounded-2xl p-5 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center gap-4"
-          style={{ boxShadow: 'var(--shadow-8)' }}
-        >
-          <div
-            className="shrink-0 w-12 h-12 rounded-xl flex items-center justify-center"
-            style={{ backgroundColor: 'var(--color-stop-bg)' }}
-          >
-            <AlertCircle className="w-6 h-6" style={{ color: 'var(--color-stop)' }} />
-          </div>
-          <div>
-            <p className="font-semibold text-sm mb-1">정보 비대칭이 문제입니다</p>
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              대형 프랜차이즈는 데이터 분석팀이 있습니다. 소상공인은 SNS와 감으로만 판단합니다.
-              ExEAT은 이 격차를 좁히기 위해 만든 <strong>무료 EXIT 타이밍 진단 도구</strong>입니다.
-            </p>
-          </div>
         </motion.div>
       </section>
 
