@@ -1,40 +1,79 @@
 @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap');
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
-@theme {
-  --color-bg:      #FAFAF7;
-  --color-surface: #F2F2EE;
-  --color-border:  #E4E4DF;
-  --color-ink:     #1A1A1A;
-  --color-muted:   #6B6B67;
+@custom-variant dark (&:is(.dark *));
 
-  --color-go:      #2D7A4F;
-  --color-go-bg:   #EAF4EF;
-  --color-wait:    #C9883A;
-  --color-wait-bg: #FDF3E7;
-  --color-stop:    #C13B3B;
-  --color-stop-bg: #FAEAEA;
-
+/* ── ExEAT 디자인 토큰 + shadcn 변수 통합 ── */
+@theme inline {
   --font-sans: 'Pretendard', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  --color-background:         var(--background);
+  --color-foreground:         var(--foreground);
+  --color-card:               var(--card);
+  --color-card-foreground:    var(--card-foreground);
+  --color-primary:            var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary:          var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted:              var(--muted);
+  --color-muted-foreground:   var(--muted-foreground);
+  --color-border:             var(--border);
+  --color-input:              var(--input);
+  --color-ring:               var(--ring);
+  --color-destructive:        var(--destructive);
+  --color-accent:             var(--accent);
+  --color-accent-foreground:  var(--accent-foreground);
+
+  /* ExEAT 전용 */
+  --color-go:       #2D7A4F;
+  --color-go-bg:    #EAF4EF;
+  --color-wait:     #C9883A;
+  --color-wait-bg:  #FDF3E7;
+  --color-stop:     #C13B3B;
+  --color-stop-bg:  #FAEAEA;
+
+  --radius-sm:  calc(var(--radius) - 4px);
+  --radius-md:  calc(var(--radius) - 2px);
+  --radius-lg:  var(--radius);
+  --radius-xl:  calc(var(--radius) + 4px);
 }
 
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+:root {
+  --radius: 0.75rem;
+
+  /* ExEAT 오프화이트 베이스 */
+  --background:           #FAFAF7;
+  --foreground:           #1A1A1A;
+  --card:                 #FFFFFF;
+  --card-foreground:      #1A1A1A;
+  --popover:              #FFFFFF;
+  --popover-foreground:   #1A1A1A;
+  --primary:              #1A1A1A;
+  --primary-foreground:   #FAFAF7;
+  --secondary:            #F2F2EE;
+  --secondary-foreground: #1A1A1A;
+  --muted:                #F2F2EE;
+  --muted-foreground:     #6B6B67;
+  --accent:               #F2F2EE;
+  --accent-foreground:    #1A1A1A;
+  --destructive:          #C13B3B;
+  --border:               #E4E4DF;
+  --input:                #E4E4DF;
+  --ring:                 #1A1A1A;
 }
 
-html, body, #root {
-  min-height: 100svh;
-}
-
-body {
-  background: var(--color-bg);
-  color: var(--color-ink);
-  font-family: var(--font-sans);
-  font-size: 16px;
-  line-height: 1.6;
-  -webkit-font-smoothing: antialiased;
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+    box-sizing: border-box;
+  }
+  body {
+    @apply bg-background text-foreground font-sans;
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.6;
+  }
 }

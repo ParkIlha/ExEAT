@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
-import './App.css'
-import TrendChart from './components/TrendChart'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Separator } from '@/components/ui/separator'
+import TrendChart from '@/components/TrendChart'
 
 // ─── types ────────────────────────────────────────────────────────────────────
-
-type Health = { ok: boolean; service: string; message: string }
 
 type TrendPoint = { period: string; ratio: number }
 type TrendResult = {
@@ -13,80 +15,98 @@ type TrendResult = {
   endDate: string
   weeks: TrendPoint[]
 }
+type Verdict = 'GO' | 'WAIT' | 'STOP'
+type Stage = 'rising' | 'peak' | 'declining' | 'stable'
 
-type Verdict = 'GO' | 'WAIT' | 'STOP' | null
+// ─── simple client-side lifecycle guess (STEP 6에서 백엔드로 이동) ────────────
+function guessStage(weeks: TrendPoint[]): { stage: Stage; verdict: Verdict } {
+  if (weeks.length < 4) return { stage: 'stable', verdict: 'WAIT' }
+  const recent = weeks.slice(-4).map((w) => w.ratio)
+  const prev   = weeks.slice(-8, -4).map((w) => w.ratio)
+  const recentAvg = recent.reduce((a, b) => a + b, 0) / recent.length
+  const prevAvg   = prev.length ? prev.reduce((a, b) => a + b, 0) / prev.length : recentAvg
+  const delta = recentAvg - prevAvg
 
-// ─── helpers ──────────────────────────────────────────────────────────────────
-
-async function fetchHealth(): Promise<Health> {
-  const res = await fetch('/api/health')
-  if (!res.ok) throw new Error(`health ${res.status}`)
-  return res.json() as Promise<Health>
+  if (delta > 8)  return { stage: 'rising',   verdict: 'GO' }
+  if (delta < -8) return { stage: 'declining', verdict: 'STOP' }
+  const peak = Math.max(...weeks.map((w) => w.ratio))
+  if (recentAvg >= peak * 0.85) return { stage: 'peak', verdict: 'WAIT' }
+  return { stage: 'stable', verdict: 'WAIT' }
 }
 
-async function fetchTrend(keyword: string): Promise<TrendResult> {
-  const res = await fetch('/api/trend', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ keyword }),
-  })
-  const json = (await res.json()) as unknown
-  if (!res.ok) {
-    const msg =
-      typeof json === 'object' && json && 'error' in json
-        ? String((json as { error: unknown }).error)
-        : `trend ${res.status}`
-    throw new Error(msg)
-  }
-  return json as TrendResult
+// ─── verdict config ───────────────────────────────────────────────────────────
+const VERDICT_CONFIG = {
+  GO: {
+    label: 'GO',
+    sub: '지금 도입 적기입니다',
+    desc: '검색 트렌드가 상승 중입니다. 경쟁자보다 먼저 선점하세요.',
+    dot: 'bg-[var(--color-go)]',
+    badge: 'bg-[var(--color-go-bg)] text-[var(--color-go)] border-[var(--color-go)]',
+    bar: 'bg-[var(--color-go)]',
+  },
+  WAIT: {
+    label: 'WAIT',
+    sub: '조금 더 지켜보세요',
+    desc: '트렌드가 정점 또는 안정기입니다. 수익성을 먼저 검토하세요.',
+    dot: 'bg-[var(--color-wait)]',
+    badge: 'bg-[var(--color-wait-bg)] text-[var(--color-wait)] border-[var(--color-wait)]',
+    bar: 'bg-[var(--color-wait)]',
+  },
+  STOP: {
+    label: 'STOP',
+    sub: '진입 비추천입니다',
+    desc: '검색 트렌드가 하락 중입니다. 재고 소진 계획을 먼저 세우세요.',
+    dot: 'bg-[var(--color-stop)]',
+    badge: 'bg-[var(--color-stop-bg)] text-[var(--color-stop)] border-[var(--color-stop)]',
+    bar: 'bg-[var(--color-stop)]',
+  },
 }
 
-// ─── sub-components ───────────────────────────────────────────────────────────
-
-function VerdictBadge({ verdict }: { verdict: Verdict }) {
-  if (!verdict) return null
-  const styles: Record<NonNullable<Verdict>, string> = {
-    GO:   'bg-[var(--color-go-bg)]   text-[var(--color-go)]   border-[var(--color-go)]',
-    WAIT: 'bg-[var(--color-wait-bg)] text-[var(--color-wait)] border-[var(--color-wait)]',
-    STOP: 'bg-[var(--color-stop-bg)] text-[var(--color-stop)] border-[var(--color-stop)]',
-  }
-  const labels: Record<NonNullable<Verdict>, string> = {
-    GO:   '지금 도입해도 됩니다',
-    WAIT: '조금 더 지켜보세요',
-    STOP: '이미 늦었습니다',
-  }
-  return (
-    <div className={`inline-flex items-center gap-2 border rounded-xl px-4 py-2 ${styles[verdict]}`}>
-      <span className="font-mono font-semibold text-xl tracking-wider">{verdict}</span>
-      <span className="text-sm">{labels[verdict]}</span>
-    </div>
-  )
-}
-
-// ─── main app ─────────────────────────────────────────────────────────────────
+// ─── app ──────────────────────────────────────────────────────────────────────
 
 export default function App() {
   const [serverOk, setServerOk] = useState<boolean | null>(null)
   const [keyword, setKeyword] = useState('')
-  const [trend, setTrend] = useState<TrendResult | null>(null)
-  const [verdict] = useState<Verdict>(null)     // STEP 6에서 채워질 예정
+  const [trend, setTrend]   = useState<TrendResult | null>(null)
+  const [stage, setStage]   = useState<Stage | null>(null)
+  const [verdict, setVerdict] = useState<Verdict | null>(null)
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError]   = useState<string | null>(null)
 
   useEffect(() => {
-    fetchHealth()
-      .then((h) => setServerOk(h.ok))
+    fetch('/api/health')
+      .then((r) => r.json())
+      .then((j: { ok: boolean }) => setServerOk(j.ok))
       .catch(() => setServerOk(false))
   }, [])
 
   async function onAnalyze() {
-    if (!keyword.trim()) return
+    const kw = keyword.trim()
+    if (!kw) return
     setLoading(true)
     setError(null)
     setTrend(null)
+    setVerdict(null)
+    setStage(null)
     try {
-      const result = await fetchTrend(keyword.trim())
-      setTrend(result)
+      const res = await fetch('/api/trend', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ keyword: kw }),
+      })
+      const json = (await res.json()) as unknown
+      if (!res.ok) {
+        const msg =
+          typeof json === 'object' && json && 'error' in json
+            ? String((json as { error: unknown }).error)
+            : `오류 ${res.status}`
+        throw new Error(msg)
+      }
+      const data = json as TrendResult
+      const { stage: s, verdict: v } = guessStage(data.weeks)
+      setTrend(data)
+      setStage(s)
+      setVerdict(v)
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
     } finally {
@@ -94,88 +114,143 @@ export default function App() {
     }
   }
 
+  const vc = verdict ? VERDICT_CONFIG[verdict] : null
+
   return (
-    <div className="min-h-svh flex flex-col bg-[var(--color-bg)]">
+    <div className="min-h-svh flex flex-col bg-background">
+
       {/* ── header ── */}
-      <header className="w-full border-b border-[var(--color-border)] px-6 py-4 flex items-center justify-between">
-        <div className="flex items-baseline gap-2">
-          <span className="font-semibold text-xl tracking-tight text-[var(--color-ink)]">ExEAT</span>
-          <span className="text-xs text-[var(--color-muted)]">트렌드 EXIT 타이밍 진단</span>
-        </div>
-        <div className="text-xs text-[var(--color-muted)] flex items-center gap-1.5">
-          <span
-            className={`w-2 h-2 rounded-full inline-block ${
-              serverOk === null
-                ? 'bg-[var(--color-muted)]'
-                : serverOk
-                ? 'bg-[var(--color-go)]'
-                : 'bg-[var(--color-stop)]'
-            }`}
-          />
-          {serverOk === null ? '서버 확인 중' : serverOk ? '서버 연결됨' : '서버 연결 안 됨'}
+      <header className="sticky top-0 z-10 border-b border-border bg-background/80 backdrop-blur-sm">
+        <div className="max-w-4xl mx-auto px-4 h-14 flex items-center justify-between">
+          <div className="flex items-baseline gap-2">
+            <span className="font-semibold text-lg tracking-tight">ExEAT</span>
+            <span className="text-xs text-muted-foreground hidden sm:block">
+              트렌드 EXIT 타이밍 진단
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <span className={`w-1.5 h-1.5 rounded-full ${
+              serverOk === null ? 'bg-muted-foreground' :
+              serverOk ? 'bg-[var(--color-go)]' : 'bg-[var(--color-stop)]'
+            }`} />
+            {serverOk === true ? 'API 연결됨' : serverOk === false ? 'API 오프라인' : '확인 중'}
+          </div>
         </div>
       </header>
 
       {/* ── main ── */}
-      <main className="flex-1 w-full max-w-5xl mx-auto px-4 py-8 flex flex-col gap-6">
+      <main className="flex-1 max-w-4xl mx-auto w-full px-4 py-8 flex flex-col gap-5">
 
         {/* F9 — AskBox */}
-        <section className="bg-white border border-[var(--color-border)] rounded-2xl p-6 shadow-sm">
-          <h2 className="text-base font-semibold mb-1">이 메뉴, 지금 들어가도 될까요?</h2>
-          <p className="text-sm text-[var(--color-muted)] mb-4">
-            키워드를 입력하면 12주 트렌드 데이터로 진입 타이밍을 분석해드립니다.
-          </p>
-          <div className="flex gap-2 flex-wrap">
-            <input
-              className="flex-1 min-w-[200px] bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 text-sm outline-none focus:border-[var(--color-ink)] transition-colors"
-              placeholder="예: 두바이초콜릿, 흑당버블티"
-              value={keyword}
-              onChange={(e) => setKeyword(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && onAnalyze()}
-            />
-            <button
-              className="bg-[var(--color-ink)] text-white rounded-xl px-5 py-2.5 text-sm font-medium hover:opacity-80 disabled:opacity-40 transition-opacity"
-              onClick={onAnalyze}
-              disabled={loading || !keyword.trim()}
-            >
-              {loading ? '분석 중…' : '분석하기'}
-            </button>
-          </div>
-          {error && (
-            <p className="mt-3 text-xs text-[var(--color-stop)]">{error}</p>
-          )}
-        </section>
-
-        {/* F1/F2 — VerdictCard (placeholder until STEP 6) */}
-        <section className="bg-white border border-[var(--color-border)] rounded-2xl p-6 shadow-sm">
-          <h2 className="text-base font-semibold mb-3">진입 판정</h2>
-          {verdict ? (
-            <VerdictBadge verdict={verdict} />
-          ) : (
-            <p className="text-sm text-[var(--color-muted)]">
-              {trend
-                ? '수명주기 분석 로직 연결 대기 중 (STEP 6)'
-                : '키워드를 분석하면 판정 결과가 표시됩니다.'}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base font-semibold">
+              이 메뉴, 지금 카페에 들어가도 될까요?
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              키워드를 입력하면 최근 12주 네이버 검색 트렌드로 진입 타이밍을 분석합니다.
             </p>
-          )}
-        </section>
+          </CardHeader>
+          <CardContent>
+            <div className="flex gap-2">
+              <Input
+                placeholder="예: 두바이초콜릿, 흑당버블티, 크로플"
+                value={keyword}
+                onChange={(e) => setKeyword(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && onAnalyze()}
+                className="flex-1"
+              />
+              <Button
+                onClick={onAnalyze}
+                disabled={loading || !keyword.trim()}
+              >
+                {loading ? '분석 중…' : '분석하기'}
+              </Button>
+            </div>
+            {error && (
+              <p className="mt-2 text-xs text-[var(--color-stop)]">{error}</p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* F1/F2 — VerdictCard */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base font-semibold">진입 판정</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {vc ? (
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center gap-3">
+                  <Badge
+                    variant="outline"
+                    className={`text-lg font-mono font-bold px-4 py-1.5 ${vc.badge}`}
+                  >
+                    {vc.label}
+                  </Badge>
+                  <span className="font-medium">{vc.sub}</span>
+                </div>
+                <Separator />
+                <p className="text-sm text-muted-foreground">{vc.desc}</p>
+                <div className="grid grid-cols-3 gap-2 text-xs">
+                  {((['GO', 'WAIT', 'STOP'] as Verdict[]).map((v) => (
+                    <div
+                      key={v}
+                      className={`rounded-lg px-3 py-2 text-center border ${
+                        verdict === v
+                          ? VERDICT_CONFIG[v].badge + ' font-semibold'
+                          : 'border-border text-muted-foreground'
+                      }`}
+                    >
+                      <div className={`w-2 h-2 rounded-full mx-auto mb-1 ${VERDICT_CONFIG[v].dot} ${verdict !== v ? 'opacity-30' : ''}`} />
+                      {v}
+                    </div>
+                  )))}
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground py-2">
+                키워드를 분석하면 GO / WAIT / STOP 판정이 표시됩니다.
+              </p>
+            )}
+          </CardContent>
+        </Card>
 
         {/* F3 — TrendChart */}
-        <section className="bg-white border border-[var(--color-border)] rounded-2xl p-6 shadow-sm">
-          <h2 className="text-base font-semibold mb-3">검색량 트렌드</h2>
-          {trend ? (
-            <TrendChart data={trend.weeks} keyword={trend.keyword} />
-          ) : (
-            <p className="text-sm text-[var(--color-muted)]">
-              키워드를 분석하면 12주 그래프가 표시됩니다.
-            </p>
-          )}
-        </section>
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base font-semibold">검색량 트렌드</CardTitle>
+              {trend && stage && (
+                <Badge variant="outline" className="font-mono text-xs">
+                  {stage === 'rising' ? '↑ 상승기' :
+                   stage === 'peak'   ? '▲ 정점' :
+                   stage === 'declining' ? '↓ 하락기' : '— 안정기'}
+                </Badge>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent>
+            {trend ? (
+              <TrendChart data={trend.weeks} keyword={trend.keyword} stage={stage} />
+            ) : (
+              <div className="h-[200px] flex items-center justify-center">
+                <p className="text-sm text-muted-foreground">
+                  {loading ? '데이터를 불러오는 중…' : '키워드를 분석하면 12주 그래프가 표시됩니다.'}
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
       </main>
 
       {/* ── footer ── */}
-      <footer className="border-t border-[var(--color-border)] px-6 py-3 text-xs text-[var(--color-muted)] text-center">
-        ExEAT · 트렌드 재료의 EXIT 타이밍을 알려드립니다
+      <footer className="border-t border-border px-4 py-4 text-xs text-muted-foreground text-center">
+        ExEAT · 트렌드 재료의 EXIT 타이밍을 알려드립니다 ·{' '}
+        <span className="font-mono">
+          {trend ? `${trend.startDate} ~ ${trend.endDate}` : '데이터 없음'}
+        </span>
       </footer>
     </div>
   )
