@@ -14,25 +14,18 @@ type TrendResult = {
   startDate: string
   endDate: string
   weeks: TrendPoint[]
+  stage: Stage
+  verdict: Verdict
+  exitWeek: number | null
+  peakWeek: number
+  peakRatio: number
+  currentRatio: number
+  avgRecent: number
+  avgPrev: number
+  reasoning?: string   // Claude AI 판정 근거 (STEP 9)
 }
 type Verdict = 'GO' | 'WAIT' | 'STOP'
 type Stage = 'rising' | 'peak' | 'declining' | 'stable'
-
-// ─── simple client-side lifecycle guess (STEP 6에서 백엔드로 이동) ────────────
-function guessStage(weeks: TrendPoint[]): { stage: Stage; verdict: Verdict } {
-  if (weeks.length < 4) return { stage: 'stable', verdict: 'WAIT' }
-  const recent = weeks.slice(-4).map((w) => w.ratio)
-  const prev   = weeks.slice(-8, -4).map((w) => w.ratio)
-  const recentAvg = recent.reduce((a, b) => a + b, 0) / recent.length
-  const prevAvg   = prev.length ? prev.reduce((a, b) => a + b, 0) / prev.length : recentAvg
-  const delta = recentAvg - prevAvg
-
-  if (delta > 8)  return { stage: 'rising',   verdict: 'GO' }
-  if (delta < -8) return { stage: 'declining', verdict: 'STOP' }
-  const peak = Math.max(...weeks.map((w) => w.ratio))
-  if (recentAvg >= peak * 0.85) return { stage: 'peak', verdict: 'WAIT' }
-  return { stage: 'stable', verdict: 'WAIT' }
-}
 
 // ─── verdict config ───────────────────────────────────────────────────────────
 const VERDICT_CONFIG = {
@@ -89,7 +82,7 @@ export default function App() {
     setVerdict(null)
     setStage(null)
     try {
-      const res = await fetch('/api/trend', {
+      const res = await fetch('/api/ask', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ keyword: kw }),
@@ -103,10 +96,9 @@ export default function App() {
         throw new Error(msg)
       }
       const data = json as TrendResult
-      const { stage: s, verdict: v } = guessStage(data.weeks)
       setTrend(data)
-      setStage(s)
-      setVerdict(v)
+      setStage(data.stage ?? null)
+      setVerdict(data.verdict ?? null)
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
     } finally {
@@ -192,6 +184,22 @@ export default function App() {
                 </div>
                 <Separator />
                 <p className="text-sm text-muted-foreground">{vc.desc}</p>
+                {trend?.exitWeek && (
+                  <p className="text-xs text-muted-foreground font-mono">
+                    ⚠ 약 <strong>{trend.exitWeek}주 후</strong> 검색량 50% 이하 예상
+                  </p>
+                )}
+                {trend?.reasoning && (
+                  <>
+                    <Separator />
+                    <div className="bg-secondary rounded-xl p-4">
+                      <p className="text-xs text-muted-foreground mb-1 font-medium">AI 분석</p>
+                      <p className="text-sm whitespace-pre-line leading-relaxed">
+                        {trend.reasoning}
+                      </p>
+                    </div>
+                  </>
+                )}
                 <div className="grid grid-cols-3 gap-2 text-xs">
                   {((['GO', 'WAIT', 'STOP'] as Verdict[]).map((v) => (
                     <div

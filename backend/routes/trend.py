@@ -1,13 +1,14 @@
 """
 /api/trend 라우터
 
-키워드를 받아서 네이버 DataLab 12주치 검색량을 반환한다.
+키워드를 받아서 네이버 DataLab 12주치 검색량 + 수명주기 분석을 반환한다.
 """
 
 import requests
 from flask import Blueprint, request, jsonify
 
 from services.naver import fetch_trend
+from services.lifecycle import analyze_lifecycle
 
 trend_bp = Blueprint("trend", __name__)
 
@@ -22,6 +23,8 @@ def get_trend():
 
     try:
         result = fetch_trend(keyword)
+        lifecycle = analyze_lifecycle(result["weeks"])
+        result.update(lifecycle)
         return jsonify(result)
 
     except ValueError as e:
