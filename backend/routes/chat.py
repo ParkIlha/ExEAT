@@ -78,7 +78,7 @@ def chat():
         prompt = _build_chat_prompt(keyword, context, question)
 
         response = client.models.generate_content(
-            model="models/gemini-2.5-flash",
+            model="models/gemini-3.0-flash",
             contents=prompt,
             config=types.GenerateContentConfig(
                 system_instruction=_CHAT_SYSTEM,

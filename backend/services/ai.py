@@ -276,8 +276,8 @@ def _ask_gemini(prompt: str, lifecycle: dict) -> dict:
 
     # 모델 우선순위 (2026년 5월 기준 사용 가능 모델만)
     _MODELS = [
+        "models/gemini-3.0-flash",
         "models/gemini-2.5-flash",
-        "models/gemini-2.5-flash-lite-preview-06-17",
         "gemini-2.5-flash",
     ]
     last_err: Exception = RuntimeError("no model tried")
