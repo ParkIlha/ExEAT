@@ -28,7 +28,7 @@ _VERDICT_MAP: dict[tuple[str, str], tuple[str, str, float]] = {
     ("TREND",  "FADED"):      ("STOP", "STOP",    0.95),
     ("STEADY", "SATURATED"):  ("WAIT", "CAUTION", 0.85),  # 포화시장 → WAIT (진입 신중)
     ("STEADY", "GROWING"):    ("GO",   "VIABLE",  0.75),  # 안정 성장 → GO
-    ("STEADY", "STABLE"):     ("GO",   "VIABLE",  0.70),  # 안정 → GO
+    ("STEADY", "STABLE"):     ("WAIT", "VIABLE",  0.70),  # 안정 → WAIT (특별히 지금 들어갈 이유 없음)
 }
 
 # UI 호환용 매핑
@@ -219,7 +219,7 @@ def analyze_lifecycle(
         else:
             cycle = "PEAK"
     else:  # STEADY
-        if avg_short >= 60 and cv < 0.3:
+        if avg_short >= 55 and cv < 0.35:
             cycle = "SATURATED"
         elif slope > 0 and 30 <= avg_short < 60 and peak_decay < 0.5:
             cycle = "GROWING"
