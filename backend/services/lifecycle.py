@@ -17,15 +17,18 @@ from scipy import stats
 
 
 # ─── Verdict 매핑 테이블 ─────────────────────────────────────────────────────
-_VERDICT_MAP: dict[tuple[str, str], tuple[str, float]] = {
-    ("TREND",  "EMERGING"):   ("GO",      0.85),
-    ("TREND",  "RISING"):     ("GO",      0.85),
-    ("TREND",  "PEAK"):       ("WAIT",    0.50),
-    ("TREND",  "DECLINING"):  ("STOP",    0.85),
-    ("TREND",  "FADED"):      ("STOP",    0.95),
-    ("STEADY", "SATURATED"):  ("CAUTION", 0.85),
-    ("STEADY", "GROWING"):    ("VIABLE",  0.75),
-    ("STEADY", "STABLE"):     ("VIABLE",  0.70),
+# verdict:       UI 호환값 (GO / WAIT / STOP — 프론트엔드 VERDICT_CONFIG 키)
+# verdictDetail: 세부 판정 (CAUTION / VIABLE 등 신규 개념은 여기에)
+_VERDICT_MAP: dict[tuple[str, str], tuple[str, str, float]] = {
+    # (nature, cycle) → (verdict_ui, verdict_detail, confidence)
+    ("TREND",  "EMERGING"):   ("GO",   "GO",      0.85),
+    ("TREND",  "RISING"):     ("GO",   "GO",      0.85),
+    ("TREND",  "PEAK"):       ("WAIT", "WAIT",    0.50),
+    ("TREND",  "DECLINING"):  ("STOP", "STOP",    0.85),
+    ("TREND",  "FADED"):      ("STOP", "STOP",    0.95),
+    ("STEADY", "SATURATED"):  ("WAIT", "CAUTION", 0.85),  # 포화시장 → WAIT (진입 신중)
+    ("STEADY", "GROWING"):    ("GO",   "VIABLE",  0.75),  # 안정 성장 → GO
+    ("STEADY", "STABLE"):     ("GO",   "VIABLE",  0.70),  # 안정 → GO
 }
 
 # UI 호환용 매핑
@@ -172,7 +175,9 @@ def analyze_lifecycle(
             cycle = "STABLE"
 
     # ─── 4. Verdict & confidence ───────────────────────────────────────────
-    verdict, confidence = _VERDICT_MAP.get((nature, cycle), ("WAIT", 0.5))
+    verdict, verdict_detail, confidence = _VERDICT_MAP.get(
+        (nature, cycle), ("WAIT", "WAIT", 0.5)
+    )
     if nature == "TREND" and r_squared < 0.3:
         confidence *= 0.8
     skip_ai = confidence >= 0.8
@@ -199,9 +204,10 @@ def analyze_lifecycle(
     stage      = _STAGE_MAP.get(cycle, "stable")
 
     return {
-        # 기존 필드 (UI 호환)
+        # 기존 필드 (UI 호환 — verdict는 반드시 GO/WAIT/STOP)
         "stage":          stage,
         "verdict":        verdict,
+        "verdictDetail":  verdict_detail,  # 신규: CAUTION/VIABLE 등 세부 판정
         "exitWeek":       exit_week,
         "peakWeek":       peak_idx,
         "peakRatio":      round(peak_ratio, 1),
@@ -229,7 +235,7 @@ def analyze_lifecycle(
 
 def _empty_result() -> dict:
     return {
-        "stage": "stable", "verdict": "WAIT",
+        "stage": "stable", "verdict": "WAIT", "verdictDetail": "WAIT",
         "exitWeek": None, "peakWeek": 0,
         "peakRatio": 0.0, "currentRatio": 0.0,
         "avgRecent": 0.0, "avgPrev": 0.0,
@@ -246,7 +252,7 @@ def _simple_result(ratios: list[float]) -> dict:
     peak_idx = ratios.index(max(ratios))
     avg = sum(ratios) / len(ratios)
     return {
-        "stage": "stable", "verdict": "WAIT",
+        "stage": "stable", "verdict": "WAIT", "verdictDetail": "WAIT",
         "exitWeek": None, "peakWeek": peak_idx,
         "peakRatio": round(max(ratios), 1),
         "currentRatio": round(ratios[-1], 1),
