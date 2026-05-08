@@ -385,11 +385,6 @@ function VerdictPanel({ data }: { data: TrendResult }) {
   const aiMeta = AI_PROVIDER_META[providerKey] ?? AI_PROVIDER_META['unknown']
   const isAlgorithmFallback = providerKey === 'algorithm'
 
-  // 빠른 ROI 미리보기 (카페 음료 기본값 가정)
-  // 사용자가 "액션 플랜" 탭 안 눌러도 가치 인식 가능하게
-  const ew = data.exitWeek ?? 12
-  const quickRevenue = 7000 * 0.65 * 40 * 7 * ew  // 음료 7천원 × 65% 마진 × 40잔 × 7일 × EXIT주
-  const quickNet     = quickRevenue - 1500000     // 초기투자 150만 차감
 
   return (
     <div className="flex flex-col gap-3">
@@ -432,20 +427,11 @@ function VerdictPanel({ data }: { data: TrendResult }) {
             </div>
           )}
 
-          {/* 빠른 수익 미리보기 — Gemini가 줄 수 없는 답 */}
-          {quickNet > 0 && data.verdict !== 'STOP' && (
-            <div className="mt-3 pt-3 border-t border-foreground/8">
-              <p className="text-[10px] text-muted-foreground mb-1">예상 수익 미리보기 · 카페 기본값</p>
-              <p className="text-sm font-bold">
-                EXIT까지 약 <span className="font-mono" style={{ color: v.color }}>
-                  {quickNet >= 10000 ? `${(quickNet / 10000).toFixed(0)}만원` : `${Math.round(quickNet).toLocaleString()}원`}
-                </span>
-              </p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">
-                액션 플랜 탭에서 내 가게 숫자로 정확히 계산
-              </p>
-            </div>
-          )}
+          <div className="mt-3 pt-3 border-t border-foreground/8">
+            <p className="text-[10px] text-muted-foreground">
+              자세한 수익 계산은 <span className="font-semibold">액션 플랜 탭 &gt; 수익성 시뮬레이터</span>에서 확인하세요
+            </p>
+          </div>
         </div>
       </motion.div>
 
