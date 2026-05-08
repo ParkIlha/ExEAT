@@ -11,7 +11,7 @@ from flask import Blueprint, request, jsonify
 
 from services import cache as file_cache
 from services.google_trend import fetch_google_trend, compute_google_direction
-from services.naver import fetch_long_range
+from services.naver import fetch_trend as fetch_naver_trend, fetch_long_range
 from services.lifecycle import analyze_lifecycle
 from services.ai import ask_ai
 from services.synthetic_trend import synthetic_weeks
@@ -247,20 +247,34 @@ def ask():
                 return jsonify(result)
 
     try:
-        # ── 3. Google Trends 12주 (메인 시계열) ──────────────────────────────
-        google_weeks = fetch_google_trend(keyword, weeks=12) or []
-        data_source  = "google_trends"
-        if not google_weeks:
-            google_weeks = synthetic_weeks(keyword, weeks=12)
-            data_source  = "synthetic"
+        # ── 3. 네이버 DataLab 26주 (메인 시계열) ─────────────────────────────
+        naver_result = fetch_naver_trend(keyword, weeks=26)
+        main_weeks   = naver_result.get("weeks", []) if isinstance(naver_result, dict) else []
+        data_source  = "naver_datalab"
 
-        google_dir = compute_google_direction(google_weeks)
+        if not main_weeks:
+            # 폴백 1: 구글 트렌드
+            main_weeks  = fetch_google_trend(keyword, weeks=12) or []
+            data_source = "google_trends"
 
-        # ── 4. 네이버 DataLab 52주 (본질 분류용, 실패 시 None) ───────────────
+        if not main_weeks:
+            # 폴백 2: 합성 데이터 (완전 오프라인 데모용)
+            main_weeks  = synthetic_weeks(keyword, weeks=12)
+            data_source = "synthetic"
+
+        print(f"[ask] '{keyword}' 데이터 소스: {data_source} ({len(main_weeks)}주)")
+
+        # 구글 트렌드 방향성은 교차 검증용으로만 (실패 시 unknown)
+        google_weeks_cross = fetch_google_trend(keyword, weeks=12) or []
+        google_dir = compute_google_direction(google_weeks_cross)
+
+        # ── 4. 네이버 DataLab 52주 (본질 분류용, 실패 시 26주로 폴백) ────────
         naver_long = fetch_long_range(keyword) or None
+        if not naver_long and len(main_weeks) >= 20:
+            naver_long = main_weeks  # 26주 데이터를 장기 분류에 활용
 
-        # ── 5. 수명주기 분석 (12주 + 52주 옵션) ─────────────────────────────
-        lifecycle = analyze_lifecycle(google_weeks, naver_long)
+        # ── 5. 수명주기 분석 ─────────────────────────────────────────────
+        lifecycle = analyze_lifecycle(main_weeks, naver_long)
 
         # ── 6. 신호 교차 분석 ─────────────────────────────────────────────
         divergence = _compute_signal_divergence(
@@ -291,7 +305,7 @@ def ask():
 
         resp = {
             "keyword":      keyword,
-            "weeks":        google_weeks,
+            "weeks":        main_weeks,
             **lifecycle,
             "dataSource":       data_source,
             "verdict":          ai_result["verdict"],
@@ -310,7 +324,8 @@ def ask():
                 "alternatives": ai_result["alternatives"],
             },
         }
-        resp["googleWeeks"] = google_weeks
+        if google_weeks_cross:
+            resp["googleWeeks"] = google_weeks_cross
 
         # ── 8. 파일 캐시 저장 (user_profile 없는 경우만) ───────────────────
         if not user_profile:
