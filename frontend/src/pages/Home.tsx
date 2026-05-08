@@ -301,19 +301,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── 시뮬레이터 CTA ── */}
-      <section className="bg-secondary/30 border-t border-border py-12 px-4">
-        <div className="max-w-3xl mx-auto text-center">
-          <p className="text-xs text-muted-foreground mb-1">손익분기 시뮬레이터</p>
-          <p className="font-semibold text-sm sm:text-base mb-4">
-            EXIT 타이밍 안에 얼마나 벌 수 있을까요?
-          </p>
-          <Button variant="outline" onClick={() => navigate('/simulate')} className="gap-1.5">
-            시뮬레이터 열기 <ArrowRight className="w-3.5 h-3.5" />
-          </Button>
-        </div>
-      </section>
-
     </div>
   )
 }

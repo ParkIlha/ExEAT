@@ -6,6 +6,7 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useAnalysis, type BusinessType, type UserProfile } from '@/store/analysis'
+import { useAuth } from '@/store/auth'
 
 const BUSINESS_TYPES: { value: BusinessType; label: string; Icon: typeof Coffee; desc: string }[] = [
   { value: 'cafe',       label: '카페·디저트',        Icon: Coffee,          desc: '커피·음료·케이크·빙수 등' },
@@ -27,6 +28,7 @@ interface Props {
 
 export default function OnboardingModal({ onDone }: Props) {
   const { setUserProfile } = useAnalysis()
+  const { saveProfile } = useAuth()
   const [step, setStep] = useState<1 | 2>(1)
   const [businessType, setBusinessType] = useState<BusinessType | null>(null)
   const [region, setRegion] = useState<string | null>(null)
@@ -35,6 +37,7 @@ export default function OnboardingModal({ onDone }: Props) {
     if (!businessType || !region) return
     const profile: UserProfile = { businessType, region }
     setUserProfile(profile)
+    saveProfile(region, businessType)  // 로그인 상태면 DB에도 저장 (아니면 noop)
     onDone()
   }
 

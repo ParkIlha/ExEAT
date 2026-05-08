@@ -350,6 +350,9 @@ export default function Result() {
                       </Section>
                       <Section index={1}><ActionPlanCard data={data} /></Section>
                       <Section index={2}><WorstCaseCard data={data} /></Section>
+                      <Section index={3}>
+                        <SimulatorCTA exitWeek={data.exitWeek} navigate={navigate} />
+                      </Section>
                     </motion.div>
                   )}
                 </AnimatePresence>

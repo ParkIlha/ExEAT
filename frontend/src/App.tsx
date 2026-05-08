@@ -14,7 +14,6 @@ import { Button } from '@/components/ui/button'
 
 const NAV = [
   { to: '/', label: '홈', exact: true },
-  { to: '/simulate', label: '시뮬레이터', exact: false },
 ]
 
 const DEMO_KEYWORDS = ['우베', '흑임자라떼', '크로플', '마라탕', '치킨']

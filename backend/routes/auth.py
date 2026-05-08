@@ -16,6 +16,8 @@ from services.auth_service import (
     make_token,
     verify_token,
     get_user_email,
+    get_user_profile,
+    update_user_profile,
     record_history,
     list_history,
     upsert_oauth_user,
@@ -60,8 +62,21 @@ def me():
     uid = _bearer_user_id()
     if not uid:
         return jsonify({"error": "로그인이 필요합니다."}), 401
-    em = get_user_email(uid)
-    return jsonify({"user": {"id": uid, "email": em}})
+    profile = get_user_profile(uid)
+    return jsonify({"user": {"id": uid, **profile}})
+
+
+@auth_bp.route("/auth/profile", methods=["PATCH"])
+def update_profile():
+    uid = _bearer_user_id()
+    if not uid:
+        return jsonify({"error": "로그인이 필요합니다."}), 401
+    body = request.get_json(silent=True) or {}
+    region = (body.get("region") or "").strip() or None
+    business_type = (body.get("businessType") or "").strip() or None
+    update_user_profile(uid, region, business_type)
+    profile = get_user_profile(uid)
+    return jsonify({"user": {"id": uid, **profile}})
 
 
 @auth_bp.route("/history", methods=["GET"])

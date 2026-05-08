@@ -43,7 +43,9 @@ def init_db() -> None:
               id INTEGER PRIMARY KEY AUTOINCREMENT,
               email TEXT UNIQUE NOT NULL COLLATE NOCASE,
               password_hash TEXT NOT NULL,
-              created_at REAL NOT NULL
+              created_at REAL NOT NULL,
+              region TEXT,
+              business_type TEXT
             );
             CREATE TABLE IF NOT EXISTS oauth_identities (
               provider TEXT NOT NULL,
@@ -63,6 +65,7 @@ def init_db() -> None:
             );
             """
         )
+    _migrate_db()
 
 
 def register_user(email: str, password: str) -> tuple[int | None, str | None]:
@@ -191,6 +194,38 @@ def upsert_oauth_user(provider: str, provider_user_id: str, email: str | None) -
             (provider, pid, uid, time.time()),
         )
     return uid
+
+
+def _migrate_db() -> None:
+    """기존 DB에 누락된 컬럼을 안전하게 추가한다."""
+    with _conn() as db:
+        for col, col_type in [("region", "TEXT"), ("business_type", "TEXT")]:
+            try:
+                db.execute(f"ALTER TABLE users ADD COLUMN {col} {col_type}")
+            except Exception:
+                pass  # 이미 존재하면 무시
+
+
+def get_user_profile(user_id: int) -> dict:
+    with _conn() as db:
+        row = db.execute(
+            "SELECT email, region, business_type FROM users WHERE id = ?", (user_id,)
+        ).fetchone()
+    if not row:
+        return {}
+    return {
+        "email": row["email"],
+        "region": row["region"],
+        "businessType": row["business_type"],
+    }
+
+
+def update_user_profile(user_id: int, region: str | None, business_type: str | None) -> None:
+    with _conn() as db:
+        db.execute(
+            "UPDATE users SET region = ?, business_type = ? WHERE id = ?",
+            (region, business_type, user_id),
+        )
 
 
 def record_history(user_id: int, keyword: str, verdict: str | None) -> None:
