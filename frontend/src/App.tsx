@@ -44,7 +44,7 @@ function Header() {
 
   return (
     <>
-      <header className="sticky top-0 z-20 border-b border-border/40 acrylic" style={{ boxShadow: 'var(--shadow-4)' }}>
+      <header className="sticky top-0 z-20 border-b border-border bg-background/95 backdrop-blur-sm" style={{ boxShadow: 'var(--shadow-4)' }}>
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-3">
           <NavLink to="/" className="flex items-center shrink-0 min-w-0">
             <img src="/logo.png" alt="ExEAT" className="h-6 w-auto object-contain" />
@@ -57,10 +57,10 @@ function Header() {
                 to={n.to}
                 end={n.exact}
                 className={({ isActive }) =>
-                  `px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
+                  `px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors whitespace-nowrap ${
                     isActive
-                      ? 'bg-foreground text-background'
-                      : 'text-foreground hover:bg-secondary'
+                      ? 'text-[#E8510A]'
+                      : 'text-foreground/70 hover:text-foreground hover:bg-secondary'
                   }`
                 }
               >
@@ -75,14 +75,16 @@ function Header() {
               <div className="flex items-center gap-1">
                 <Button
                   size="sm"
-                  variant="secondary"
+                  variant="outline"
                   onClick={() => { setInitialMode('register'); setLoginOpen(true) }}
+                  className="font-medium"
                 >
                   회원가입
                 </Button>
                 <Button
                   size="sm"
                   onClick={() => { setInitialMode('login'); setLoginOpen(true) }}
+                  className="bg-[#E8510A] hover:bg-[#d44800] text-white font-medium"
                 >
                   로그인
                 </Button>
