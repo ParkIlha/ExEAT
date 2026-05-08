@@ -706,9 +706,9 @@ function RiskGauge({ data }: { data: TrendResult }) {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-4">
         {[
           { label: '정점 대비 하락',  value: `${Math.round((data.peakDecay ?? 0) * 100)}%` },
-          { label: '4주 평균 변화', value: `${(data.avgRecent - data.avgPrev > 0 ? '+' : '')}${(data.avgRecent - data.avgPrev).toFixed(0)}` },
-          { label: '모멘텀',          value: (data.momentum ?? 0).toFixed(1) },
-          { label: '변동성',          value: (data.volatility ?? 0).toFixed(1) },
+          { label: '4주 평균 변화', value: (() => { const d = (data.avgRecent ?? 0) - (data.avgPrev ?? 0); return isNaN(d) ? '—' : `${d > 0 ? '+' : ''}${d.toFixed(0)}` })() },
+          { label: '모멘텀',  value: isNaN(data.momentum ?? NaN) ? '—' : (data.momentum ?? 0).toFixed(1) },
+          { label: '변동성',  value: isNaN(data.volatility ?? NaN) ? '—' : (data.volatility ?? 0).toFixed(1) },
         ].map((m) => (
           <div key={m.label} className="bg-secondary rounded-lg px-2 py-1.5 flex flex-col">
             <span className="text-[10px] text-muted-foreground">{m.label}</span>
@@ -782,11 +782,27 @@ function ItemTypeCard({ data }: { data: TrendResult }) {
 // ─── Data Insight ────────────────────────────────────────────────────────────
 
 function DataInsightCard({ data }: { data: TrendResult }) {
-  const insight = data.dataInsight || data.reasoning
-  if (!insight) return null
   const providerRaw = data.aiProvider ?? 'unknown'
   const provider = providerRaw.split(' ')[0]
   const meta = AI_PROVIDER_META[provider] ?? AI_PROVIDER_META['unknown']
+
+  // AI 결과 없으면 lifecycle 데이터로 자동 생성
+  const insight = data.dataInsight || data.reasoning || (() => {
+    const decay = Math.round((data.peakDecay ?? 0) * 100)
+    const delta = ((data.avgRecent ?? 0) - (data.avgPrev ?? 0))
+    const deltaStr = isNaN(delta) ? '' : `최근 4주 검색량 변화 ${delta > 0 ? '+' : ''}${delta.toFixed(1)}pt. `
+    const decayStr = decay > 0 ? `정점 대비 ${decay}% 하락한 상태입니다. ` : ''
+    const stageMap: Record<string, string> = {
+      rising: '현재 상승세로, 관심도가 지속적으로 높아지고 있습니다.',
+      peak: '정점 부근에 위치해 있으며, 추가 상승 여력은 제한적입니다.',
+      declining: '하락 추세로 전환되었으며, 검색 관심도가 줄어들고 있습니다.',
+      stable: '뚜렷한 방향성 없이 비슷한 수준을 유지 중입니다.',
+    }
+    return deltaStr + decayStr + (stageMap[data.stage] ?? '')
+  })()
+
+  const providerLabel = provider === 'algorithm' ? '알고리즘' : meta.label
+
   return (
     <div className="fluent-card rounded-2xl p-5">
       <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
@@ -799,9 +815,8 @@ function DataInsightCard({ data }: { data: TrendResult }) {
         <span
           className="text-[10px] font-mono px-2 py-0.5 rounded-full border"
           style={{ color: meta.color, borderColor: meta.color + '55' }}
-          title={`${provider} 가 분석을 생성했습니다`}
         >
-          by {meta.label}
+          by {providerLabel}
         </span>
       </div>
       <p className="text-sm whitespace-pre-line leading-relaxed">{insight}</p>
@@ -812,7 +827,20 @@ function DataInsightCard({ data }: { data: TrendResult }) {
 // ─── Market Context ──────────────────────────────────────────────────────────
 
 function MarketContextCard({ data }: { data: TrendResult }) {
-  if (!data.marketContext) return null
+  const context = data.marketContext || (() => {
+    const cycleMap: Record<string, string> = {
+      SATURATED: '이미 경쟁자가 많은 포화 시장입니다. 차별화 없이 진입하면 생존이 어렵습니다.',
+      GROWING:   '꾸준히 성장 중인 시장으로, 지금이 비교적 안정적인 진입 시점입니다.',
+      STABLE:    '변동이 적고 안정적인 시장입니다. 기존 강자가 많으니 나만의 강점이 필요합니다.',
+      EMERGING:  '아직 경쟁이 본격화되지 않은 초기 시장입니다. 선점 기회가 있습니다.',
+      RISING:    '빠르게 성장하는 시장으로, 경쟁 진입도 빨라지고 있습니다.',
+      PEAK:      '시장이 과열 상태입니다. 진입 시 출구 전략을 반드시 준비하세요.',
+      DECLINING: '시장 관심도가 줄어드는 추세입니다. 신규 진입보다 대체 메뉴 검토를 권장합니다.',
+      FADED:     '한때 인기 있었던 메뉴로 현재 시장 수요가 크게 줄었습니다.',
+    }
+    return cycleMap[data.cycle ?? ''] ?? '시장 상황을 지속적으로 모니터링하는 것이 중요합니다.'
+  })()
+
   return (
     <div className="bg-secondary/60 border border-border rounded-2xl p-5">
       <div className="flex items-center gap-2 mb-3">
@@ -821,7 +849,7 @@ function MarketContextCard({ data }: { data: TrendResult }) {
           시장 맥락
         </span>
       </div>
-      <p className="text-sm whitespace-pre-line leading-relaxed">{data.marketContext}</p>
+      <p className="text-sm whitespace-pre-line leading-relaxed">{context}</p>
     </div>
   )
 }
@@ -835,8 +863,13 @@ const STARTUP_COST_META = {
 }
 
 function StartupCostCard({ data }: { data: TrendResult }) {
-  const cost = data.startupCost
-  if (!cost) return null
+  // startupCost 없으면 itemType으로 추정
+  const cost = data.startupCost ?? (() => {
+    const t = data.itemType ?? ''
+    if (['steady_saturated'].includes(t)) return 'high'
+    if (['trending', 'seasonal'].includes(t)) return 'medium'
+    return 'medium'
+  })() as 'low' | 'medium' | 'high'
   const meta = STARTUP_COST_META[cost]
   return (
     <div className="fluent-card rounded-2xl p-5 flex items-center gap-4">
