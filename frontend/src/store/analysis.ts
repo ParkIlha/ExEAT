@@ -78,6 +78,7 @@ export type TrendResult = {
   marketContext?:  string
   actionPlan?:     ActionPlan
   aiProvider?:     'claude' | 'gemini' | 'algorithm' | 'unknown'
+  startupCost?:    'low' | 'medium' | 'high'
 }
 
 export type BusinessType =

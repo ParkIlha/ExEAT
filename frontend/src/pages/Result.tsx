@@ -336,7 +336,8 @@ export default function Result() {
                       {data.saturationScore != null && <Section index={1}><SaturationCard data={data} /></Section>}
                       <Section index={2}><DataInsightCard data={data} /></Section>
                       <Section index={3}><MarketContextCard data={data} /></Section>
-                      <Section index={4}><RiskGauge data={data} /></Section>
+                      <Section index={4}><StartupCostCard data={data} /></Section>
+                      <Section index={5}><RiskGauge data={data} /></Section>
                     </motion.div>
                   )}
                   {activeTab === 'plan' && (
@@ -810,6 +811,39 @@ function MarketContextCard({ data }: { data: TrendResult }) {
         </span>
       </div>
       <p className="text-sm whitespace-pre-line leading-relaxed">{data.marketContext}</p>
+    </div>
+  )
+}
+
+// ─── StartupCost Card ────────────────────────────────────────────────────────
+
+const STARTUP_COST_META = {
+  low:    { label: '초기 비용 낮음',   desc: '특별한 장비 없이 시작 가능 (100만원 이하)', color: 'var(--color-go)',   emoji: '🟢' },
+  medium: { label: '초기 비용 보통',   desc: '기본 장비 필요 (100~500만원 예상)',           color: 'var(--color-wait)', emoji: '🟡' },
+  high:   { label: '초기 비용 높음',   desc: '전용 장비·설비 투자 필요 (500만원+)',         color: 'var(--color-stop)', emoji: '🔴' },
+}
+
+function StartupCostCard({ data }: { data: TrendResult }) {
+  const cost = data.startupCost
+  if (!cost) return null
+  const meta = STARTUP_COST_META[cost]
+  return (
+    <div className="fluent-card rounded-2xl p-5 flex items-center gap-4">
+      <div
+        className="shrink-0 w-10 h-10 rounded-xl flex items-center justify-center text-lg"
+        style={{ backgroundColor: meta.color + '18' }}
+      >
+        {meta.emoji}
+      </div>
+      <div>
+        <div className="flex items-center gap-2 mb-0.5">
+          <span className="text-[11px] font-medium uppercase tracking-widest text-muted-foreground">
+            초기 창업 비용
+          </span>
+          <span className="text-xs font-bold" style={{ color: meta.color }}>{meta.label}</span>
+        </div>
+        <p className="text-xs text-muted-foreground">{meta.desc}</p>
+      </div>
     </div>
   )
 }

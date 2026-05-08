@@ -39,38 +39,42 @@ def clear_ai_response_cache() -> None:
 
 
 _SYSTEM = """
-너는 외식/먹을거리 트렌드 분석가다.
-네이버 검색 트렌드 + 수명주기 분석 + 메뉴 분류 데이터를 보고
-소상공인(식당/카페/디저트가게/푸드트럭)에게 **데이터 근거 기반의 깊이 있는 분석**과
-**구체적이고 실행 가능한** 진입 전략을 제시한다.
+너는 소상공인의 든든한 외식 컨설턴트다.
+데이터를 보고 사장님께 **쉬운 말로 핵심만** 짚어주는 게 목표다.
+숫자 나열은 최소화하고, "왜 그런지"와 "어떻게 하면 되는지"를 친근하게 알려줘라.
 
 답변 규칙:
-- 반드시 아래 JSON 형식을 그대로 따른다 (다른 설명 없이 JSON만 출력)
-- 모든 필드는 한국어, 추상적인 말("신중히", "검토하라") 금지
-- 모든 분석에 **수치(주차/퍼센트/검색량)**를 명시적으로 포함
-- 같은 verdict라도 메뉴별/itemType별로 **다른 톤·다른 조언**이 나와야 함
-- itemType 별 톤:
-  · trending(폭발 상승): "선점하되 출구 전략" 강조
-  · classic(클래식): "수익성·차별화" 강조 (트렌드 무관)
-  · seasonal: "시기적 진입·재고 관리" 강조
-  · growing: "조기 진입 + 모니터링" 강조
-  · fading: "재고 소진·대체 전략" 강조
-  · niche: "충성 고객 확보" 강조
-  · steady_saturated: "포화 시장 경고 + 강력한 차별화 필수" 강조 (단순 진입은 위험)
-  · steady_safe: "차별화 포인트 1개로 안정 수요 공략" 강조
-  · steady_emerging: "유행 이후 안착 메뉴, 시그니처화 전략" 강조
+- 반드시 아래 JSON 형식만 출력 (설명·마크다운 없이)
+- 모든 필드는 한국어
+- **dataInsight**: 수치를 직접 나열하지 말고, "지금 이 메뉴는 ~한 상태예요" 식으로 해석해서 설명
+- **marketContext**: "이 시장은 ~해서 ~을 조심해야 해요" 식의 조언형
+- 액션 플랜은 "~하세요", "~해보세요" 로 끝나는 실행 가능한 조언
+- itemType 별 핵심 메시지:
+  · trending: 지금 뜨고 있으니 빠르게 치고 나오되 언제 빠질지 대비
+  · classic: 안정적이지만 경쟁도 많으니 나만의 차별점 필요
+  · seasonal: 계절 타이밍이 전부니 시기 맞춰 준비하세요
+  · growing: 조용히 뜨고 있는 메뉴, 지금이 좋은 타이밍
+  · fading: 이미 지나간 메뉴, 빠른 정리가 손실을 줄여요
+  · steady_saturated: 포화 상태라 웬만한 차별화 없이는 힘들어요
+  · steady_safe: 꾸준한 수요가 있으니 잘 만들면 안정적
+  · steady_emerging: 유행은 지났지만 자리잡은 메뉴, 시그니처로 만들면 좋아요
+- **startupCost**: 이 메뉴를 새로 시작할 때 초기 장비·인테리어 비용 수준
+  · "low"    = 특별한 장비 없이 시작 가능 (소금빵·샌드위치·음료 등, 100만원 이하)
+  · "medium" = 기본 장비 필요 (에스프레소 머신·튀김기·반죽기 등, 100~500만원)
+  · "high"   = 전용 장비·별도 인테리어 필요 (빙수기·마라탕 육수 설비·치킨 튀김기 등, 500만원+)
 
 출력 JSON 스키마:
 {
   "verdict": "GO" | "WAIT" | "STOP",
-  "summary": "1줄 진단 (40자 이내, 수치 1개 이상 포함)",
-  "dataInsight": "데이터에서 보이는 핵심 인사이트 (2~3줄). 모멘텀/변곡점/예측값/정점하락률 같은 구체 수치 활용.",
-  "marketContext": "시장 맥락 1~2줄 — 계절성·경쟁·구매 시그널·유사 패턴 메뉴 등",
-  "immediate":  ["이번 주 / 1주 안에 할 일 2~3개, 각 30~50자"],
+  "summary": "1줄 진단 — 사장님 말투로, 40자 이내",
+  "dataInsight": "지금 이 메뉴 상태를 쉽게 해석한 2~3줄. 수치 직접 나열 금지, 의미 위주로.",
+  "marketContext": "이 시장이나 경쟁 상황을 조언 형식으로 1~2줄.",
+  "immediate":  ["이번 주 안에 할 일 2~3개 (~하세요 형태)"],
   "shortterm":  ["1개월 안에 할 일 2~3개"],
   "midterm":    ["3개월 안에 할 일 2~3개"],
-  "worstCase":  "최악 시나리오 1줄 (수치/기간 포함)",
-  "alternatives": ["대안 메뉴 1~3개 (이 메뉴 부적합 시 고려할 만한 대체, 한 단어씩)"]
+  "worstCase":  "최악 시나리오 — 현실적으로 1줄",
+  "alternatives": ["대안 메뉴 1~3개 (한 단어씩)"],
+  "startupCost": "low" | "medium" | "high"
 }
 """.strip()
 
@@ -243,6 +247,9 @@ def _normalize_response(parsed: dict, lifecycle: dict) -> dict:
             return [val.strip()] if val.strip() else []
         return []
 
+    raw_cost = (parsed.get("startupCost") or "").lower()
+    startup_cost = raw_cost if raw_cost in ("low", "medium", "high") else None
+
     return {
         "verdict":       verdict,
         "summary":       str(parsed.get("summary", "")).strip(),
@@ -255,6 +262,7 @@ def _normalize_response(parsed: dict, lifecycle: dict) -> dict:
         "alternatives":  _str_list(parsed.get("alternatives")),
         "exitWeek":      lifecycle.get("exitWeek"),
         "reasoning":     str(parsed.get("summary", "")).strip(),
+        "startupCost":   startup_cost,
     }
 
 
@@ -355,6 +363,34 @@ def ask_ai(
 
 # ─── 알고리즘 폴백 ──────────────────────────────────────────────────────────
 
+_STARTUP_COST_HIGH = {
+    "치킨", "마라탕", "마라샹궈", "빙수", "팥빙수", "소프트아이스크림", "로스터리",
+    "스모크", "훈제", "브루어리", "크래프트비어", "핸드드립", "에스프레소바",
+    "타코야키", "와플", "버블티", "스무디", "쥬스바", "파스타", "피자",
+}
+_STARTUP_COST_LOW = {
+    "소금빵", "샌드위치", "베이글", "카스텔라", "마들렌", "휘낭시에",
+    "약과", "찹쌀떡", "영양갱", "쿠키", "브라우니", "그래놀라", "아사이볼",
+    "핫도그", "떡꼬치", "붕어빵", "호떡", "계란빵", "토스트", "김밥",
+}
+
+
+def _get_startup_cost(keyword: str, item_type: str) -> str:
+    """키워드·메뉴유형 기반 초기 창업 비용 추정."""
+    for k in _STARTUP_COST_HIGH:
+        if k in keyword:
+            return "high"
+    for k in _STARTUP_COST_LOW:
+        if k in keyword:
+            return "low"
+    # 유형별 기본값
+    if item_type in ("trending", "seasonal"):
+        return "medium"
+    if item_type in ("steady_saturated",):
+        return "high"
+    return "medium"
+
+
 def _fallback_verdict(keyword: str, lifecycle: dict) -> dict:
     verdict   = lifecycle.get("verdict", "WAIT")
     stage     = lifecycle.get("stage", "stable")
@@ -370,35 +406,35 @@ def _fallback_verdict(keyword: str, lifecycle: dict) -> dict:
     decay_pct = round(decay * 100)
     delta = round(avg_r - avg_p, 1)
 
-    # ── 메뉴 본질에 따른 데이터 인사이트 ───────────────────────────────────
-    insight_parts = []
+    # ── 조언형 데이터 인사이트 ───────────────────────────────────────────
     if item_type == "trending":
-        insight_parts.append(f"폭발적 상승 중인 트렌딩 메뉴 (모멘텀 {momentum}).")
+        data_insight = f"{keyword}은 지금 빠르게 관심이 오르고 있어요. 아직 경쟁자가 많지 않을 때 먼저 치고 나갈 수 있는 타이밍입니다."
     elif item_type == "classic":
-        insight_parts.append("12주 동안 변동성이 작아 충성 수요가 안정적.")
+        data_insight = f"{keyword}은 오랫동안 꾸준히 찾는 메뉴예요. 트렌드에 흔들리지 않지만, 그만큼 경쟁도 많으니 나만의 강점을 만드는 게 중요해요."
     elif item_type == "fading":
-        insight_parts.append(f"정점 대비 {decay_pct}% 하락한 한물간 메뉴.")
+        data_insight = f"{keyword}은 한창 인기 있을 때보다 관심이 많이 줄었어요. 지금 새로 시작하면 회수가 어려울 수 있습니다."
     elif item_type == "growing":
-        insight_parts.append(f"점진적 우상향 (+{delta}pt 변화).")
+        data_insight = f"{keyword}은 조용히, 하지만 꾸준히 관심이 늘고 있어요. 아직 경쟁이 치열하지 않아서 지금이 좋은 진입 시점일 수 있습니다."
     elif item_type == "seasonal":
-        insight_parts.append("변동성이 매우 큰 계절성 메뉴 가능성.")
+        data_insight = f"{keyword}은 계절에 따라 인기가 크게 달라지는 메뉴예요. 시즌에 맞춰 준비하면 높은 매출을 기대할 수 있습니다."
+    elif item_type in ("steady_saturated",):
+        data_insight = f"{keyword}은 항상 찾는 사람이 있지만, 이미 엄청나게 많은 가게들이 팔고 있어요. 특별한 차별점 없이 시작하면 살아남기 힘들 수 있어요."
     elif item_type == "niche":
-        insight_parts.append("검색량은 작지만 안정적인 틈새 메뉴.")
+        data_insight = f"{keyword}은 검색량은 적지만 찾는 사람은 꾸준해요. 마니아층이 있는 메뉴라 충성 고객을 만들기에 좋아요."
     else:
-        insight_parts.append(f"방향성 약한 정체 구간 (4주 변화 {delta}pt).")
+        data_insight = f"{keyword}은 지금 뚜렷한 방향 없이 비슷한 수준을 유지하고 있어요. 조금 더 지켜보면서 타이밍을 재는 게 좋겠어요."
     if inflection:
-        insight_parts.append(f"{inflection}주차에서 추세 전환 발생.")
-    data_insight = " ".join(insight_parts)
+        data_insight += f" {inflection}주 전부터 추세가 바뀌기 시작했어요."
 
-    # ── 시장 맥락 ─────────────────────────────────────────────────────────
+    # ── 조언형 시장 맥락 ─────────────────────────────────────────────────
     if stage == "rising":
-        market_ctx = "검색량 가속 상승. 경쟁 진입이 빨라질 가능성 높음."
+        market_ctx = "지금 이 메뉴를 준비하는 가게들이 늘고 있어요. 일찍 시작할수록 유리하지만, 트렌드가 꺾이는 타이밍도 미리 생각해두세요."
     elif stage == "declining":
-        market_ctx = "검색량 둔화 + 경쟁자도 점차 이탈 단계. 재고 회전 우선."
+        market_ctx = "관심이 줄어들면서 경쟁자들도 빠져나가는 중이에요. 재고 정리를 우선하고 다음 메뉴를 준비하는 게 현명해요."
     elif stage == "peak":
-        market_ctx = "정점 부근. 추가 상승 여력 제한적, 진입 시 출구 전략 필수."
+        market_ctx = "지금이 인기의 정점에 가까워요. 새로 시작한다면 얼마나 오래 유지될지 고민하면서 출구 전략도 같이 세우세요."
     else:
-        market_ctx = "큰 변동 없음. 유사 메뉴 대비 차별화 포인트 확보가 관건."
+        market_ctx = "큰 변화 없이 안정적인 상태예요. 비슷한 메뉴들 사이에서 내 가게만의 매력을 보여주는 게 중요해요."
 
     # ── 액션 플랜 (verdict + itemType 조합) ───────────────────────────────
     if verdict == "GO":
@@ -515,4 +551,5 @@ def _fallback_verdict(keyword: str, lifecycle: dict) -> dict:
         "alternatives":  alt,
         "exitWeek":      exit_w,
         "reasoning":     summary,
+        "startupCost":   _get_startup_cost(keyword, item_type),
     }
