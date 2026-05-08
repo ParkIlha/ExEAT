@@ -20,9 +20,8 @@ export default function LoginModal({ open, onClose, initialMode = 'login' }: Pro
   const [error, setError] = useState('')
   const [googleReady, setGoogleReady] = useState(false)
 
-  if (!open) return null
-
   useEffect(() => {
+    if (!open) return
     setMode(initialMode)
     setError('')
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -125,6 +124,8 @@ export default function LoginModal({ open, onClose, initialMode = 'login' }: Pro
       setLoading(false)
     }
   }
+
+  if (!open) return null
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
