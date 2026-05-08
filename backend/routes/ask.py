@@ -290,7 +290,7 @@ def ask():
         if lifecycle.get("skipAI") and not user_profile:
             # 명확한 케이스 → 알고리즘 + 자동 reasoning (Gemini 호출 안 함)
             ai_result = ask_ai(
-                keyword, lifecycle, google_weeks,
+                keyword, lifecycle, main_weeks,
                 shopping=None, blog=None, news=None,
                 google_dir=google_dir,
                 skip_ai=True,
@@ -300,7 +300,7 @@ def ask():
         else:
             # 경계 케이스(PEAK 등) → Gemini 호출
             ai_result = ask_ai(
-                keyword, lifecycle, google_weeks,
+                keyword, lifecycle, main_weeks,
                 shopping=None, blog=None, news=None,
                 google_dir=google_dir,
                 user_profile=user_profile,
