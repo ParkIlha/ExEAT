@@ -19,8 +19,14 @@ def fetch_google_trend(keyword: str, weeks: int = 12) -> list[dict]:
     """
     try:
         from pytrends.request import TrendReq
+        import requests as _req
+        from requests.adapters import HTTPAdapter
 
-        pytrends = TrendReq(hl="ko", tz=540, timeout=(10, 25), retries=1, backoff_factor=0.5)
+        # urllib3 2.x 호환: method_whitelist → allowed_methods 이름 변경 대응
+        try:
+            pytrends = TrendReq(hl="ko", tz=540, timeout=(10, 25), retries=1, backoff_factor=0.5)
+        except TypeError:
+            pytrends = TrendReq(hl="ko", tz=540, timeout=(10, 25))
         pytrends.build_payload(
             [keyword],
             cat=0,
