@@ -248,9 +248,13 @@ def ask():
 
     try:
         # ── 3. 네이버 DataLab 26주 (메인 시계열) ─────────────────────────────
-        naver_result = fetch_naver_trend(keyword, weeks=26)
-        main_weeks   = naver_result.get("weeks", []) if isinstance(naver_result, dict) else []
-        data_source  = "naver_datalab"
+        try:
+            naver_result = fetch_naver_trend(keyword, weeks=26)
+            main_weeks   = naver_result.get("weeks", []) if isinstance(naver_result, dict) else []
+        except Exception as naver_err:
+            print(f"[ask] 네이버 fetch_trend 실패: {naver_err}")
+            main_weeks = []
+        data_source  = "naver_datalab" if main_weeks else ""
 
         if not main_weeks:
             # 폴백 1: 구글 트렌드
