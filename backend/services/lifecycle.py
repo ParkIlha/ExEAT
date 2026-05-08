@@ -119,7 +119,7 @@ def analyze_lifecycle(
     peak_long = max(ratios_l) if ratios_l else 0.0
     peak_to_avg = peak_long / avg_long if avg_long > 0 else 1.0
 
-    nature = "TREND" if peak_to_avg >= 2.5 else "STEADY"
+    nature = "TREND" if peak_to_avg >= 2.0 else "STEADY"
 
     # ─── 2. 단기 지표 (12주) ───────────────────────────────────────────────
     arr = np.array(ratios_s, dtype=float)
@@ -169,7 +169,7 @@ def analyze_lifecycle(
     else:  # STEADY
         if avg_short >= 60 and cv < 0.3:
             cycle = "SATURATED"
-        elif slope > 0 and 30 <= avg_short < 60:
+        elif slope > 0 and 30 <= avg_short < 60 and peak_decay < 0.5:
             cycle = "GROWING"
         else:
             cycle = "STABLE"
