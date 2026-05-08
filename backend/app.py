@@ -23,6 +23,7 @@ from routes.trending import trending_bp
 from routes.auth import auth_bp
 from routes.cache_admin import cache_admin_bp
 from routes.recommendations import recommendations_bp, start_background_refresh
+from routes.chat import chat_bp
 from services.auth_service import init_db
 
 
@@ -50,6 +51,7 @@ def create_app():
     app.register_blueprint(auth_bp, url_prefix="/api")
     app.register_blueprint(cache_admin_bp, url_prefix="/api")
     app.register_blueprint(recommendations_bp, url_prefix="/api")
+    app.register_blueprint(chat_bp, url_prefix="/api")
 
     # 서버 시작 시 추천 메뉴 백그라운드 분석 시작
     start_background_refresh()

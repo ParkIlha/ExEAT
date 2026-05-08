@@ -14,6 +14,7 @@ import TrendChart from '@/components/TrendChart'
 import RecommendedRegions from '@/components/RecommendedRegions'
 import CountUp from '@/components/CountUp'
 import ROICard from '@/components/ROICard'
+import AnalysisChat from '@/components/AnalysisChat'
 import { useAnalysis, type TrendResult, type Verdict, type DivergenceType } from '@/store/analysis'
 import { useAuth } from '@/store/auth'
 
@@ -359,6 +360,16 @@ export default function Result() {
                 </AnimatePresence>
               </div>
             </div>
+
+            {/* ── AI 추가 질문 채팅 ── */}
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.5 }}
+              className="mt-4"
+            >
+              <AnalysisChat data={data} />
+            </motion.div>
           </motion.div>
         ) : null}
       </AnimatePresence>
