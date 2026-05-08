@@ -232,7 +232,9 @@ def analyze_lifecycle(
     )
     if nature == "TREND" and r_squared < 0.3:
         confidence *= 0.8
-    skip_ai = confidence >= 0.8
+    # confidence 0.95 이상(FADED처럼 명확한 케이스)만 AI 스킵
+    # 나머지는 Gemini가 시장 맥락·계절성·업종 맞춤 분석 진행
+    skip_ai = confidence >= 0.95
 
     # ─── 5. 예측 (EWMA 마지막값 + slope 외삽) ───────────────────────────────
     last_smooth = smoothed[-1]
