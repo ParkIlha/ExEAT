@@ -78,6 +78,7 @@ def _build_result(keyword: str) -> dict | None:
             keyword, lifecycle, google_weeks,
             shopping=None,
             blog=None, news=None, google_dir=google_dir,
+            skip_ai=True,  # warm 캐시는 Gemini 호출 안 함 (비용 절감)
         )
         resp = {
             "keyword": keyword,
@@ -122,25 +123,8 @@ def _warm_cache(keywords: list[str]) -> None:
 
 @ask_bp.route("/warm", methods=["POST"])
 def warm():
-    """프론트엔드가 앱 시작 시 호출하는 사전 캐시 엔드포인트."""
-    data = request.get_json(silent=True) or {}
-    keywords = data.get("keywords", _DEMO_KEYWORDS)
-    if not isinstance(keywords, list):
-        keywords = _DEMO_KEYWORDS
-    keywords = [k for k in keywords if isinstance(k, str) and k.strip()][:10]
-
-    cached   = [k for k in keywords if k in _result_cache]
-    to_fetch = [k for k in keywords if k not in _result_cache]
-
-    if to_fetch:
-        t = threading.Thread(target=_warm_cache, args=(to_fetch,), daemon=True)
-        t.start()
-
-    return jsonify({
-        "status": "started",
-        "cached": cached,
-        "fetching": to_fetch,
-    })
+    """사전 캐시 엔드포인트 — 비활성화 (사용자 검색 시에만 캐시)."""
+    return jsonify({"status": "disabled", "cached": [], "fetching": []})
 
 
 @ask_bp.route("/warm/status", methods=["GET"])
