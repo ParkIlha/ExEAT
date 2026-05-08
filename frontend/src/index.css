@@ -140,6 +140,9 @@ button:active:not(:disabled) {
 ::selection { background: rgba(45,122,79,0.15); }
 
 @layer base {
+  html {
+    font-size: 18px;
+  }
   * {
     @apply border-border outline-ring/50;
     box-sizing: border-box;

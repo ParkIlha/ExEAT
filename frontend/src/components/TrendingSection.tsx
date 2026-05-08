@@ -12,7 +12,7 @@ const ITEM_TYPE_LABEL: Record<ItemType, { label: string; color: string; Icon: ty
   trending: { label: '폭발 상승', Icon: Flame,      color: 'var(--color-stop)' },
   growing:  { label: '성장',     Icon: TrendingUp, color: 'var(--color-go)' },
   classic:  { label: '클래식',   Icon: Star,       color: 'var(--color-go)' },
-  seasonal: { label: '계절성',   Icon: Snowflake,  color: 'var(--color-wait)' },
+  seasonal: { label: '계절 상승', Icon: Snowflake,  color: '#0ea5e9' },
   fading:   { label: '한물감',   Icon: Activity,   color: 'var(--color-stop)' },
   niche:    { label: '틈새',     Icon: Target,     color: '#888' },
   stable:   { label: '안정',     Icon: Minus,      color: '#888' },
@@ -38,15 +38,15 @@ export default function TrendingSection() {
     <section className="max-w-3xl mx-auto w-full px-4 sm:px-6 py-12 sm:py-16">
       <div className="flex items-baseline justify-between mb-6 flex-wrap gap-2">
         <div>
-          <span className="text-[11px] font-medium uppercase tracking-widest text-muted-foreground">
-            지금 뜨는 메뉴
+          <span className="text-[13px] font-medium uppercase tracking-widest text-muted-foreground">
+            지금 뜨는 트렌드
           </span>
           <h2 className="text-base sm:text-lg font-semibold mt-0.5">
-            요즘 검색량이 가장 빠르게 오르는 메뉴
+            요즘 외식업계에서 주목받는 메뉴
           </h2>
         </div>
-        <span className="text-[10px] text-muted-foreground font-mono">
-          최근 4주 vs 이전 4주
+        <span className="text-xs text-muted-foreground font-mono">
+          ExEAT 트렌드 스코어 기준
         </span>
       </div>
 
@@ -84,14 +84,14 @@ export default function TrendingSection() {
                   </div>
                   <Badge
                     variant="outline"
-                    className="text-[10px] shrink-0 inline-flex items-center gap-1"
+                    className="text-xs shrink-0 inline-flex items-center gap-1"
                     style={{ color: meta.color, borderColor: meta.color }}
                   >
                     <meta.Icon className="w-2.5 h-2.5" strokeWidth={2.5} />
                     {meta.label}
                   </Badge>
                 </div>
-                <div className="flex items-center gap-3 text-[11px]">
+                <div className="flex items-center gap-3 text-[13px]">
                   <span className="font-mono" style={{ color: deltaColor }}>
                     {it.delta > 0 ? '+' : ''}{it.delta.toFixed(1)}pt
                   </span>

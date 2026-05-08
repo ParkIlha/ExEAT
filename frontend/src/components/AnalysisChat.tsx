@@ -84,7 +84,7 @@ export default function AnalysisChat({ data }: Props) {
             {data.keyword} 분석 결과를 바탕으로 창업·운영에 관한 무엇이든 질문하세요
           </p>
         </div>
-        <span className="ml-auto text-[10px] font-mono text-muted-foreground px-2 py-1 border border-border rounded-full shrink-0">
+        <span className="ml-auto text-xs font-mono text-muted-foreground px-2 py-1 border border-border rounded-full shrink-0">
           Gemini
         </span>
       </div>
@@ -174,13 +174,17 @@ export default function AnalysisChat({ data }: Props) {
       )}
 
       {/* 입력창 */}
-      <div className="px-4 pb-4 flex gap-2">
+      <div className="px-4 pb-4 flex flex-col gap-1.5">
+        <p className="text-xs text-muted-foreground px-1">
+          💡 <span className="font-medium">지역·업종·초기 자본</span> 등 구체적인 정보를 함께 입력하면 더 정확한 답변을 받을 수 있어요.
+        </p>
+        <div className="flex gap-2">
         <input
           type="text"
           value={input}
           onChange={e => setInput(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && !e.shiftKey && send()}
-          placeholder="재료비, 수익성, 경쟁 전략 등 무엇이든 물어보세요…"
+          placeholder="예) 서울 홍대, 초기 자본 3000만원, 1인 카페 창업 예정인데 빙수 가능할까요?"
           disabled={loading}
           className="flex-1 rounded-xl border border-border bg-background px-4 py-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#E8510A]/30 focus:border-[#E8510A]/50 disabled:opacity-50"
         />
@@ -192,6 +196,7 @@ export default function AnalysisChat({ data }: Props) {
         >
           <Send className="w-4 h-4" />
         </Button>
+        </div>
       </div>
     </div>
   )

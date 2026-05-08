@@ -71,7 +71,7 @@ const ITEM_TYPE_META: Record<string, ItemTypeMeta> = {
 // ─── 분석중 로딩 화면 ─────────────────────────────────────────────────────────
 
 const LOADING_STEPS = [
-  { label: '네이버 DataLab 데이터 수집 중', sub: '12주 검색량 + 쇼핑 클릭 불러오는 중...', duration: 2000 },
+  { label: '네이버 DataLab 데이터 수집 중', sub: '52주 검색량 + 쇼핑 클릭 불러오는 중...', duration: 2000 },
   { label: '블로그·뉴스·구글 신호 분석 중', sub: 'UGC 버즈 · 미디어 노출 · 글로벌 트렌드 교차 중...', duration: 2500 },
   { label: '수명주기 & 위험도 계산 중', sub: 'Prophet 예측 · 변곡점 · 위험도 산출 중...', duration: 2000 },
   { label: 'AI가 진단 리포트 작성 중', sub: 'Gemini가 데이터 해석 + 액션 플랜 생성 중...', duration: 0 },
@@ -168,7 +168,7 @@ function AnalyzingScreen({ keyword }: { keyword: string }) {
                 {active && (
                   <motion.p
                     initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                    className="text-[10px] text-muted-foreground mt-0.5"
+                    className="text-xs text-muted-foreground mt-0.5"
                   >
                     {s.sub}
                   </motion.p>
@@ -390,7 +390,7 @@ function VerdictPanel({ data }: { data: TrendResult }) {
     <div className="flex flex-col gap-3">
       {/* AI 폴백 알림 (Gemini 실패 시) */}
       {isAlgorithmFallback && (
-        <div className="text-[10px] text-[var(--color-wait)] bg-[var(--color-wait-bg)] border border-[var(--color-wait)]/30 rounded-lg px-2.5 py-1.5 flex items-center gap-1.5">
+        <div className="text-xs text-[var(--color-wait)] bg-[var(--color-wait-bg)] border border-[var(--color-wait)]/30 rounded-lg px-2.5 py-1.5 flex items-center gap-1.5">
           <Info className="w-3 h-3 shrink-0" />
           <span>AI 응답 지연 — 알고리즘 분석 결과를 표시합니다 (정확도 동일)</span>
         </div>
@@ -412,14 +412,14 @@ function VerdictPanel({ data }: { data: TrendResult }) {
         <div className="absolute -right-3 -top-2 text-[90px] font-black leading-none opacity-[0.07] pointer-events-none select-none font-mono" style={{ color: v.color }}>{v.label}</div>
 
         <div className="relative flex flex-col gap-2">
-          <span className="text-[10px] font-medium uppercase tracking-widest" style={{ color: v.color }}>진단 결과</span>
+          <span className="text-xs font-medium uppercase tracking-widest" style={{ color: v.color }}>진단 결과</span>
           <div className="font-mono font-black text-4xl tracking-tight" style={{ color: v.color }}>{v.label}</div>
           <p className="font-semibold text-sm">{v.sub}</p>
           <p className="text-xs text-muted-foreground leading-relaxed">{data.summary || v.desc}</p>
 
           {data.exitWeek && (
             <div
-              className="mt-1 inline-flex items-center gap-1.5 self-start text-[11px] font-mono rounded-lg px-2.5 py-1.5 border"
+              className="mt-1 inline-flex items-center gap-1.5 self-start text-[13px] font-mono rounded-lg px-2.5 py-1.5 border"
               style={{ borderColor: v.color + '60', color: v.color, background: v.color + '0e' }}
             >
               <AlertTriangle className="w-3 h-3" strokeWidth={2.5} />
@@ -428,7 +428,7 @@ function VerdictPanel({ data }: { data: TrendResult }) {
           )}
 
           <div className="mt-3 pt-3 border-t border-foreground/8">
-            <p className="text-[10px] text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               자세한 수익 계산은 <span className="font-semibold">액션 플랜 탭 &gt; 수익성 시뮬레이터</span>에서 확인하세요
             </p>
           </div>
@@ -443,19 +443,19 @@ function VerdictPanel({ data }: { data: TrendResult }) {
       >
         <div className="grid grid-cols-2 gap-3">
           <div className="flex flex-col gap-0.5">
-            <span className="text-[10px] text-muted-foreground">위험도</span>
+            <span className="text-xs text-muted-foreground">위험도</span>
             <span className="font-mono font-bold text-lg"><CountUp to={data.riskScore ?? 0} /><span className="text-xs font-normal text-muted-foreground">/100</span></span>
           </div>
           <div className="flex flex-col gap-0.5">
-            <span className="text-[10px] text-muted-foreground">단계</span>
+            <span className="text-xs text-muted-foreground">단계</span>
             <span className="font-mono font-bold text-sm">{STAGE_LABEL[data.stage]}</span>
           </div>
           <div className="flex flex-col gap-0.5">
-            <span className="text-[10px] text-muted-foreground">평균 검색량</span>
+            <span className="text-xs text-muted-foreground">평균 검색량</span>
             <span className="font-mono font-bold text-lg"><CountUp to={data.avgAll ?? 0} decimals={1} /></span>
           </div>
           <div className="flex flex-col gap-0.5">
-            <span className="text-[10px] text-muted-foreground">모멘텀</span>
+            <span className="text-xs text-muted-foreground">모멘텀</span>
             <span className={`font-mono font-bold text-sm ${(data.momentum ?? 0) > 0 ? 'text-[var(--color-go)]' : 'text-[var(--color-stop)]'}`}>
               {(data.momentum ?? 0) > 0 ? '+' : ''}{data.momentum ?? 0}
             </span>
@@ -467,8 +467,8 @@ function VerdictPanel({ data }: { data: TrendResult }) {
         <div className="flex flex-col gap-1.5">
           {itemMeta && (
             <div className="flex items-center justify-between">
-              <span className="text-[10px] text-muted-foreground">메뉴 유형</span>
-              <span className="text-[11px] font-semibold inline-flex items-center gap-1" style={{ color: itemMeta.color }}>
+              <span className="text-xs text-muted-foreground">메뉴 유형</span>
+              <span className="text-[13px] font-semibold inline-flex items-center gap-1" style={{ color: itemMeta.color }}>
                 <itemMeta.Icon className="w-3 h-3" strokeWidth={2.2} />
                 {itemMeta.label}
               </span>
@@ -476,8 +476,8 @@ function VerdictPanel({ data }: { data: TrendResult }) {
           )}
           {data.peakDecay != null && (
             <div className="flex items-center justify-between">
-              <span className="text-[10px] text-muted-foreground">정점 대비</span>
-              <span className="text-[11px] font-mono">
+              <span className="text-xs text-muted-foreground">정점 대비</span>
+              <span className="text-[13px] font-mono">
                 {data.peakDecay > 0 ? '−' : ''}{Math.round(data.peakDecay * 100)}%
               </span>
             </div>
@@ -494,8 +494,8 @@ function VerdictPanel({ data }: { data: TrendResult }) {
             if (!m) return null
             return (
               <div className="flex items-center justify-between">
-                <span className="text-[10px] text-muted-foreground">시그널</span>
-                <span className="text-[11px] font-medium inline-flex items-center gap-1" style={{ color: m.color }}>
+                <span className="text-xs text-muted-foreground">시그널</span>
+                <span className="text-[13px] font-medium inline-flex items-center gap-1" style={{ color: m.color }}>
                   <m.Icon className="w-3 h-3" strokeWidth={2.5} />
                   {m.label}
                 </span>
@@ -503,8 +503,8 @@ function VerdictPanel({ data }: { data: TrendResult }) {
             )
           })()}
           <div className="flex items-center justify-between">
-            <span className="text-[10px] text-muted-foreground">분석</span>
-            <span className="text-[10px] font-mono" style={{ color: aiMeta.color }}>{aiMeta.label}</span>
+            <span className="text-xs text-muted-foreground">분석</span>
+            <span className="text-xs font-mono" style={{ color: aiMeta.color }}>{aiMeta.label}</span>
           </div>
         </div>
       </motion.div>
@@ -537,10 +537,10 @@ function SaturationCard({ data }: { data: TrendResult }) {
       <div className="flex items-start justify-between mb-4">
         <div>
           <h3 className="font-semibold text-sm mb-0.5">스테디 시장 분석</h3>
-          <p className="text-[11px] text-muted-foreground">포화도 · 경쟁 강도 · 진입 전략</p>
+          <p className="text-[13px] text-muted-foreground">포화도 · 경쟁 강도 · 진입 전략</p>
         </div>
         <div
-          className="px-2.5 py-1 rounded-full text-[11px] font-semibold"
+          className="px-2.5 py-1 rounded-full text-[13px] font-semibold"
           style={{ backgroundColor: entryColor + '18', color: entryColor }}
         >
           {entryLabel}
@@ -664,10 +664,10 @@ function RiskGauge({ data }: { data: TrendResult }) {
     <div className="fluent-card rounded-2xl p-5">
       <div className="flex items-baseline justify-between mb-3 flex-wrap gap-2">
         <div className="flex items-center gap-2">
-          <span className="text-[11px] font-medium uppercase tracking-widest text-muted-foreground">
+          <span className="text-[13px] font-medium uppercase tracking-widest text-muted-foreground">
             종합 위험도
           </span>
-          <Badge variant="outline" className="text-[10px]" style={{ color, borderColor: color }}>
+          <Badge variant="outline" className="text-xs" style={{ color, borderColor: color }}>
             {label}
           </Badge>
         </div>
@@ -695,7 +695,7 @@ function RiskGauge({ data }: { data: TrendResult }) {
           { label: '변동성',  value: isNaN(data.volatility ?? NaN) ? '—' : (data.volatility ?? 0).toFixed(1) },
         ].map((m) => (
           <div key={m.label} className="bg-secondary rounded-lg px-2 py-1.5 flex flex-col">
-            <span className="text-[10px] text-muted-foreground">{m.label}</span>
+            <span className="text-xs text-muted-foreground">{m.label}</span>
             <span className="font-mono text-xs font-medium">{m.value}</span>
           </div>
         ))}
@@ -722,7 +722,7 @@ function MetricsRow({ data }: { data: TrendResult }) {
     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
       {items.map((m) => (
         <div key={m.label} className="fluent-card rounded-2xl p-4 flex flex-col gap-1.5">
-          <span className="text-[11px] text-muted-foreground">{m.label}</span>
+          <span className="text-[13px] text-muted-foreground">{m.label}</span>
           {m.placeholder ? (
             <span className="font-mono font-bold text-2xl text-muted-foreground">{m.placeholder}</span>
           ) : (
@@ -753,7 +753,7 @@ function ItemTypeCard({ data }: { data: TrendResult }) {
         <meta.Icon className="w-6 h-6 sm:w-7 sm:h-7" strokeWidth={1.8} style={{ color: meta.color }} />
       </div>
       <div className="flex flex-col gap-0.5 min-w-0">
-        <span className="text-[11px] font-medium uppercase tracking-widest" style={{ color: meta.color }}>
+        <span className="text-[13px] font-medium uppercase tracking-widest" style={{ color: meta.color }}>
           메뉴 본질
         </span>
         <span className="font-semibold text-base">{meta.label}</span>
@@ -792,12 +792,12 @@ function DataInsightCard({ data }: { data: TrendResult }) {
       <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
         <div className="flex items-center gap-2">
           <BarChart3 className="w-4 h-4 text-muted-foreground" strokeWidth={2} />
-          <span className="text-[11px] font-medium uppercase tracking-widest text-muted-foreground">
+          <span className="text-[13px] font-medium uppercase tracking-widest text-muted-foreground">
             데이터 인사이트
           </span>
         </div>
         <span
-          className="text-[10px] font-mono px-2 py-0.5 rounded-full border"
+          className="text-xs font-mono px-2 py-0.5 rounded-full border"
           style={{ color: meta.color, borderColor: meta.color + '55' }}
         >
           by {providerLabel}
@@ -829,7 +829,7 @@ function MarketContextCard({ data }: { data: TrendResult }) {
     <div className="bg-secondary/60 border border-border rounded-2xl p-5">
       <div className="flex items-center gap-2 mb-3">
         <span className="text-base">🌐</span>
-        <span className="text-[11px] font-medium uppercase tracking-widest text-muted-foreground">
+        <span className="text-[13px] font-medium uppercase tracking-widest text-muted-foreground">
           시장 맥락
         </span>
       </div>
@@ -865,7 +865,7 @@ function StartupCostCard({ data }: { data: TrendResult }) {
       </div>
       <div>
         <div className="flex items-center gap-2 mb-0.5">
-          <span className="text-[11px] font-medium uppercase tracking-widest text-muted-foreground">
+          <span className="text-[13px] font-medium uppercase tracking-widest text-muted-foreground">
             초기 창업 비용
           </span>
           <span className="text-xs font-bold" style={{ color: meta.color }}>{meta.label}</span>
@@ -894,7 +894,7 @@ function ActionPlanCard({ data }: { data: TrendResult }) {
     <div className="fluent-card rounded-2xl p-5">
       <div className="flex items-center gap-2 mb-4">
         <Target className="w-4 h-4 text-muted-foreground" strokeWidth={2} />
-        <span className="text-[11px] font-medium uppercase tracking-widest text-muted-foreground">
+        <span className="text-[13px] font-medium uppercase tracking-widest text-muted-foreground">
           액션 플랜
         </span>
       </div>
@@ -927,7 +927,7 @@ function ActionPlanCard({ data }: { data: TrendResult }) {
         {/* 대안 메뉴 */}
         {ap.alternatives && ap.alternatives.length > 0 && (
           <div className="border-t border-border pt-4 mt-1">
-            <p className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2">
+            <p className="text-xs uppercase tracking-widest text-muted-foreground mb-2">
               대안 메뉴 후보
             </p>
             <div className="flex flex-wrap gap-1.5">
@@ -953,7 +953,7 @@ function WorstCaseCard({ data }: { data: TrendResult }) {
     <div className="bg-[var(--color-stop-bg)] border border-[var(--color-stop)]/30 rounded-2xl p-5">
       <div className="flex items-center gap-2 mb-2">
         <AlertTriangle className="w-4 h-4 text-[var(--color-stop)]" strokeWidth={2.2} />
-        <span className="text-[11px] font-medium uppercase tracking-widest text-[var(--color-stop)]">
+        <span className="text-[13px] font-medium uppercase tracking-widest text-[var(--color-stop)]">
           최악의 시나리오
         </span>
       </div>
@@ -1028,7 +1028,7 @@ function SignalCard({ data }: { data: TrendResult }) {
       <div className="flex items-start justify-between mb-4 gap-3 flex-wrap">
         <div>
           <h3 className="font-semibold text-sm mb-0.5">멀티 신호 비교</h3>
-          <p className="text-[11px] text-muted-foreground">검색량 · 쇼핑 · 블로그 · 뉴스 · 구글 교차 분석</p>
+          <p className="text-[13px] text-muted-foreground">검색량 · 쇼핑 · 블로그 · 뉴스 · 구글 교차 분석</p>
         </div>
         <div
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold"
@@ -1079,7 +1079,7 @@ function TrendBlock({ data }: { data: TrendResult }) {
     <div className="fluent-card rounded-2xl p-5">
       <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
         <h3 className="font-semibold text-sm">트렌드 수명주기 분석</h3>
-        <span className="text-[11px] text-muted-foreground font-mono">
+        <span className="text-[13px] text-muted-foreground font-mono">
           {data.startDate} ~ {data.endDate}
         </span>
       </div>
@@ -1095,7 +1095,7 @@ function TrendBlock({ data }: { data: TrendResult }) {
         riskScore={data.riskScore}
       />
       {data.inflectionWeek != null && data.weeks[data.inflectionWeek] && (
-        <p className="text-[11px] text-muted-foreground mt-3">
+        <p className="text-[13px] text-muted-foreground mt-3">
           · 변곡점 <span className="font-mono">{data.weeks[data.inflectionWeek].period}</span>
           에서 추세가 전환되었습니다
         </p>

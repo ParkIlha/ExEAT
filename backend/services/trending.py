@@ -10,17 +10,39 @@ from services.google_trend import fetch_google_trend
 from services.lifecycle import analyze_lifecycle
 from services.synthetic_trend import synthetic_weeks
 
-# 후보 키워드 (2025~2026 외식 트렌드 메뉴 기준)
+try:
+    from services.keyword_samples import TRENDING_ITEMS as _STATIC_TRENDING
+except ImportError:
+    _STATIC_TRENDING = None
+
+# 후보 키워드 (2025~2026 외식 트렌드 메뉴 기준, 50개)
 CANDIDATES = [
-    # 2025~2026 상승 트렌드
-    "우베",  "흑임자라떼", "말차", "타르트", "크룽지",
-    # 안착 중인 스테디 (steady_emerging/safe 검증용)
-    "크로플", "베이글", "도넛", "마라탕", "로제파스타",
-    # 클래식·포화 스테디 (steady_saturated 검증용)
-    "치킨", "떡볶이", "삼겹살",
-    # 지켜볼 것들
-    "마라샹궈", "하이볼", "파스타", "흑당버블티",
+    # 여름 시즌 상승 (5~8월 GO 유력)
+    "빙수", "망고빙수", "팥빙수", "딸기빙수",
+    "냉면", "물냉면", "콜드브루", "레모네이드",
+    "복숭아아이스티", "스무디", "아사이볼",
+    # 2025~2026 신흥 트렌드
+    "두바이초콜릿", "크룽지", "흑임자라떼", "말차라떼",
+    "수제버거", "스시버거", "타르트", "마들렌", "휘낭시에",
+    "바스크치즈케이크", "얼그레이라떼", "우베라떼",
+    # 성장 중인 안착 메뉴
+    "크로플", "소금빵", "베이글", "도넛", "마카롱",
+    "하이볼", "감바스", "로제파스타", "크림파스타",
+    "닭강정", "닭갈비",
+    # 스테디·포화 검증용
+    "치킨", "떡볶이", "마라탕", "삼겹살", "순대",
+    "라면", "비빔밥", "삼계탕", "족발",
+    # 관찰 대상
+    "마라샹궈", "탕후루", "흑당버블티",
+    "말차케이크", "찹쌀도넛", "크레이프",
 ]
+
+# 계절성 키워드 — 현재 시즌(5~8월)에 보너스 부여
+_SEASONAL_BOOST = {
+    "빙수", "망고빙수", "팥빙수", "딸기빙수",
+    "냉면", "물냉면", "콜드브루", "레모네이드",
+    "복숭아아이스티", "스무디", "아사이볼",
+}
 
 _CACHE: dict = {"ts": 0.0, "data": []}
 _TTL = 60 * 60   # 1시간
@@ -33,6 +55,9 @@ def clear_trending_cache() -> None:
 
 def get_trending(top_n: int = 5, force: bool = False) -> list[dict]:
     """후보 키워드 분석 후 상승률 순 정렬, 상위 top_n 반환."""
+    if _STATIC_TRENDING:
+        return _STATIC_TRENDING[:top_n]
+
     if not force and _CACHE["data"] and time.time() - _CACHE["ts"] < _TTL:
         return _CACHE["data"][:top_n]
 
@@ -58,8 +83,18 @@ def get_trending(top_n: int = 5, force: bool = False) -> list[dict]:
             print(f"[trending] {kw} skipped: {e}")
             continue
 
-    # 상승률 우선, 동일 시 현재 검색량
-    results.sort(key=lambda x: (x["delta"], x["current"]), reverse=True)
+    # 상승률 + 계절 보너스 + GO 우선 정렬
+    def _trend_score(x: dict) -> float:
+        score = x["delta"] * 2 + x["current"] * 0.1
+        if x["keyword"] in _SEASONAL_BOOST:
+            score += 15
+        if x["verdict"] == "GO":
+            score += 30
+        elif x["verdict"] == "WAIT":
+            score += 5
+        return score
+
+    results.sort(key=_trend_score, reverse=True)
 
     _CACHE["ts"] = time.time()
     _CACHE["data"] = results

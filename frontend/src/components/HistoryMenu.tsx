@@ -55,10 +55,10 @@ export default function HistoryMenu() {
         >
           {/* 이메일 + 로그아웃 */}
           <div className="px-3 py-2 border-b border-border flex items-center justify-between gap-2">
-            <span className="text-[10px] text-muted-foreground truncate">{email}</span>
+            <span className="text-xs text-muted-foreground truncate">{email}</span>
             <button
               type="button"
-              className="text-[10px] text-muted-foreground hover:text-foreground shrink-0 transition-colors"
+              className="text-xs text-muted-foreground hover:text-foreground shrink-0 transition-colors"
               onClick={() => { logout(); setOpen(false) }}
             >
               로그아웃
@@ -85,7 +85,7 @@ export default function HistoryMenu() {
                   <span className="font-medium text-foreground truncate">{it.keyword}</span>
                   {vs ? (
                     <span
-                      className="font-mono font-bold text-[10px] px-1.5 py-0.5 rounded shrink-0"
+                      className="font-mono font-bold text-xs px-1.5 py-0.5 rounded shrink-0"
                       style={{ color: vs.color, backgroundColor: vs.color + '18' }}
                     >
                       {vs.label}

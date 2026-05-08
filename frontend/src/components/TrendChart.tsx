@@ -168,26 +168,26 @@ export default function TrendChart({
             수명주기 분석
             {stageKo && (
               <span
-                className="text-[10px] font-medium px-1.5 py-0.5 rounded-md"
+                className="text-xs font-medium px-1.5 py-0.5 rounded-md"
                 style={{ color: lineColor, backgroundColor: currFill }}
               >
                 {stageKo}
               </span>
             )}
             {riskScore != null && (
-              <span className="text-[10px] text-muted-foreground font-normal">
+              <span className="text-xs text-muted-foreground font-normal">
                 위험도 {riskScore}/100
               </span>
             )}
           </p>
-          <p className="text-[10px] text-muted-foreground mt-0.5">
+          <p className="text-xs text-muted-foreground mt-0.5">
             {keyword} · {data.length}주 실측 + 4주 예측 | 네이버 DataLab
             {hasShop ? ' · 쇼핑클릭' : ''}
             {hasGoogle ? ' · 구글트렌드' : ''}
           </p>
         </div>
         {/* 범례 */}
-        <div className="flex items-center gap-3 text-[10px] text-muted-foreground flex-wrap">
+        <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
           <span className="flex items-center gap-1">
             <span className="w-3 h-0.5 inline-block rounded" style={{ backgroundColor: lineColor }} />
             네이버 검색
@@ -367,12 +367,12 @@ export default function TrendChart({
       {/* ── 하단 인사이트 배너 ── */}
       <div className="mt-3 flex items-center gap-3 flex-wrap">
         <div
-          className="text-[10px] px-2.5 py-1 rounded-md font-medium"
+          className="text-xs px-2.5 py-1 rounded-md font-medium"
           style={{ color: lineColor, backgroundColor: currFill }}
         >
           현재 {stage ? STAGE_KO[stage] : '—'}
         </div>
-        <p className="text-[11px] text-muted-foreground">
+        <p className="text-[13px] text-muted-foreground">
           EXIT 임계선({exitThreshold}) 이하로 떨어지면 수요가 절반 이하로 감소한 것입니다
         </p>
       </div>

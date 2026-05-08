@@ -77,7 +77,7 @@ export default function Simulator({ defaultExitWeek }: Props) {
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {FIELDS.map(({ key, label }) => (
           <div key={key} className="flex flex-col gap-1">
-            <label className="text-[11px] text-muted-foreground">{label}</label>
+            <label className="text-[13px] text-muted-foreground">{label}</label>
             <Input
               type="number"
               value={simInput[key]}
@@ -132,7 +132,7 @@ export default function Simulator({ defaultExitWeek }: Props) {
                   transition={{ duration: 0.3, delay: i * 0.05 }}
                   className="bg-secondary rounded-2xl p-3 flex flex-col gap-1"
                 >
-                  <span className="text-[11px] text-muted-foreground">{m.label}</span>
+                  <span className="text-[13px] text-muted-foreground">{m.label}</span>
                   <span className="font-mono font-semibold text-sm">
                     {m.rendered ?? <>
                       <CountUp to={m.raw ?? 0} duration={1000} />{m.unit}

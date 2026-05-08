@@ -29,48 +29,56 @@ const VERDICT_STYLE: Record<string, { bg: string; text: string; label: string }>
 }
 
 export default function ROICard({ exitWeek, verdict, keyword }: Props) {
-  const [price, setPrice] = useState('6500')
-  const [cost,  setCost]  = useState('2100')
-  const [daily, setDaily] = useState('60')
-  const [fixed, setFixed] = useState('250')
+  const [price,    setPrice]    = useState('6500')
+  const [cost,     setCost]     = useState('2100')
+  const [daily,    setDaily]    = useState('60')
+  const [fixed,    setFixed]    = useState('250')
+  const [overhead, setOverhead] = useState('12')
 
   const r = useMemo(() => {
-    const p  = Number(price) || 0
-    const c  = Number(cost)  || 0
-    const d  = Number(daily) || 0
-    const fc = (Number(fixed) || 0) * 10000
-    const ew = exitWeek ?? 12
+    const p   = Number(price)    || 0
+    const c   = Number(cost)     || 0
+    const d   = Number(daily)    || 0
+    const fc  = (Number(fixed)   || 0) * 10000
+    const ovr = (Number(overhead)|| 0) / 100
+    const ew  = exitWeek ?? 12
 
     const perItem       = p - c
     const monthlyRev    = p * d * 30
     const monthlyCost   = c * d * 30
     const contribution  = monthlyRev - monthlyCost
-    const monthlyNet    = contribution - fc
-    const totalNet      = monthlyNet * (ew / 4.3)
-    const breakEvenDaily = fc > 0 && perItem > 0 ? Math.ceil(fc / (perItem * 30)) : null
+    const monthlyOverhead = monthlyRev * ovr
+    const monthlyNet    = contribution - fc - monthlyOverhead
+    const taxRate       = monthlyNet > 0 ? 0.15 : 0
+    const monthlyNetAfterTax = monthlyNet * (1 - taxRate)
+    const totalNet      = monthlyNetAfterTax * (ew / 4.3)
+    const breakEvenDaily = (fc + monthlyRev * ovr / 30) > 0 && perItem > 0
+      ? Math.ceil((fc + monthlyRev * ovr) / (perItem * 30))
+      : null
 
-    return { perItem, monthlyRev, monthlyCost, contribution, monthlyNet, totalNet, breakEvenDaily, exitWeek: ew, fc }
-  }, [price, cost, daily, fixed, exitWeek])
+    return { perItem, monthlyRev, monthlyCost, contribution, monthlyOverhead, monthlyNet, monthlyNetAfterTax, totalNet, breakEvenDaily, exitWeek: ew, fc, taxRate }
+  }, [price, cost, daily, fixed, overhead, exitWeek])
 
-  const isViable = r.monthlyNet > 0 && (r.breakEvenDaily == null || r.breakEvenDaily < Number(daily))
-  const isDanger = r.monthlyNet <= 0
+  const isViable = r.monthlyNetAfterTax > 0 && (r.breakEvenDaily == null || r.breakEvenDaily < Number(daily))
+  const isDanger = r.monthlyNetAfterTax <= 0
 
   const vs = VERDICT_STYLE[verdict] ?? VERDICT_STYLE.WAIT
 
   function applyPreset(p: typeof PRESETS[0]) {
     setPrice(String(p.price)); setCost(String(p.cost))
     setDaily(String(p.daily)); setFixed(String(p.fixed))
+    setOverhead('12')
   }
 
   return (
     <div className="fluent-card rounded-2xl overflow-hidden">
       <div className="px-5 pt-4 pb-3 border-b border-border">
-        <p className="text-[10px] font-semibold text-[#E8510A] tracking-widest uppercase mb-1">P&L Simulation</p>
+        <p className="text-xs font-semibold text-[#E8510A] tracking-widest uppercase mb-1">P&L Simulation</p>
         <h3 className="text-xl font-bold tracking-tight">수익성 시뮬레이터</h3>
         <div className="flex gap-1.5 flex-wrap mt-2.5">
           {PRESETS.map((p) => (
             <button key={p.label} type="button" onClick={() => applyPreset(p)}
-              className="text-[11px] px-2.5 py-1 rounded-full border border-border text-muted-foreground hover:border-[#E8510A] hover:text-[#E8510A] transition-colors">
+              className="text-[13px] px-2.5 py-1 rounded-full border border-border text-muted-foreground hover:border-[#E8510A] hover:text-[#E8510A] transition-colors">
               {p.label}
             </button>
           ))}
@@ -85,17 +93,18 @@ export default function ROICard({ exitWeek, verdict, keyword }: Props) {
             <span>$</span> 입력값 <span className="text-muted-foreground font-normal">(예: {keyword})</span>
           </p>
           {[
-            { label: '재료비 (1개당)', value: cost,  set: setCost,  unit: '원',   hint: '2,100' },
-            { label: '판매가',         value: price, set: setPrice, unit: '원',   hint: '6,500' },
-            { label: '예상 일 판매량', value: daily, set: setDaily, unit: '개',   hint: '60' },
-            { label: '월 고정비 할당', value: fixed, set: setFixed, unit: '만원', hint: '임대료+인건비' },
+            { label: '재료비 (1개당)', value: cost,     set: setCost,     unit: '원',   hint: '2,100' },
+            { label: '판매가',         value: price,    set: setPrice,    unit: '원',   hint: '6,500' },
+            { label: '예상 일 판매량', value: daily,    set: setDaily,    unit: '개',   hint: '60' },
+            { label: '월 고정비',      value: fixed,    set: setFixed,    unit: '만원', hint: '임대료+인건비' },
+            { label: '기타 운영비율',  value: overhead, set: setOverhead, unit: '%',    hint: '카드수수료·소모품' },
           ].map((f) => (
             <div key={f.label} className="flex items-center justify-between gap-2">
               <span className="text-sm text-muted-foreground shrink-0">{f.label}</span>
               <div className="relative w-32">
                 <Input type="number" value={f.value} onChange={(e) => f.set(e.target.value)}
                   placeholder={f.hint} className="font-mono text-sm text-right pr-8 h-8" />
-                <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground pointer-events-none">{f.unit}</span>
+                <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">{f.unit}</span>
               </div>
             </div>
           ))}
@@ -116,26 +125,38 @@ export default function ROICard({ exitWeek, verdict, keyword }: Props) {
             {
               label: '월 재료비',
               sub: `${Number(cost).toLocaleString()}원 × ${daily}개 × 30일`,
-              value: fmt(r.monthlyCost),
+              value: `−${fmt(r.monthlyCost)}`,
               big: false,
             },
             {
-              label: '공헌이익',
-              sub: '매출 − 재료비',
-              value: fmt(r.contribution),
+              label: `기타 운영비 (${overhead}%)`,
+              sub: '카드수수료·포장재·소모품 등',
+              value: `−${fmt(r.monthlyOverhead)}`,
               big: false,
             },
             {
-              label: '순이익 (추정)',
-              sub: '공헌이익 − 고정비 할당',
+              label: '월 고정비',
+              sub: '임대료·인건비·공과금',
+              value: `−${fmt(r.fc)}`,
+              big: false,
+            },
+            {
+              label: '세전 순이익',
+              sub: '매출 − 전체 비용',
               value: fmt(r.monthlyNet),
+              big: false,
+            },
+            {
+              label: '세후 순이익',
+              sub: r.monthlyNet > 0 ? `세율 약 ${Math.round(r.taxRate * 100)}% 적용` : '세금 없음',
+              value: fmt(r.monthlyNetAfterTax),
               big: true,
             },
           ].map((row) => (
             <div key={row.label} className={`flex items-end justify-between border-b border-white/20 pb-2 ${row.big ? 'pt-1' : ''}`}>
               <div>
                 <p className={`${row.big ? 'text-sm font-semibold' : 'text-xs opacity-80'}`}>{row.label}</p>
-                <p className="text-[10px] opacity-60">{row.sub}</p>
+                <p className="text-xs opacity-60">{row.sub}</p>
               </div>
               <span className={`font-mono font-bold ${row.big ? 'text-2xl' : 'text-base'}`}>{row.value}</span>
             </div>
@@ -156,7 +177,7 @@ export default function ROICard({ exitWeek, verdict, keyword }: Props) {
           </div>
 
           <div className="bg-secondary rounded-2xl p-4 flex flex-col items-center gap-1">
-            <span className="text-[11px] text-muted-foreground">손익분기 일판매량</span>
+            <span className="text-[13px] text-muted-foreground">손익분기 일판매량</span>
             <motion.span
               key={r.breakEvenDaily}
               initial={{ scale: 0.8, opacity: 0 }}
@@ -166,15 +187,15 @@ export default function ROICard({ exitWeek, verdict, keyword }: Props) {
               {r.breakEvenDaily ?? '—'}
             </motion.span>
             {r.breakEvenDaily != null && (
-              <span className="text-[10px] text-muted-foreground">
+              <span className="text-xs text-muted-foreground">
                 개 / 현재 {daily}개 &gt; {Number(daily) >= r.breakEvenDaily ? '✓ 안전' : '⚠ 부족'}
               </span>
             )}
           </div>
 
           {exitWeek != null && (
-            <div className="text-[11px] text-muted-foreground text-center border border-border rounded-xl px-3 py-2">
-              EXIT {exitWeek}주 기준 예상 누적<br />
+            <div className="text-[13px] text-muted-foreground text-center border border-border rounded-xl px-3 py-2">
+              EXIT {exitWeek}주 기준 세후 누적 순이익<br />
               <span className={`font-mono font-bold text-sm ${r.totalNet >= 0 ? 'text-[var(--color-go)]' : 'text-[var(--color-stop)]'}`}>
                 {fmt(r.totalNet)}
               </span>

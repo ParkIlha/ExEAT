@@ -16,9 +16,16 @@ from services.naver import fetch_trend as fetch_naver_trend, fetch_long_range
 from services.lifecycle import analyze_lifecycle
 from services.ai import ask_ai
 from services.synthetic_trend import synthetic_weeks
-from services.keyword_samples import KEYWORD_SAMPLES as DEMO_FIXTURES
+from services.keyword_samples import KEYWORD_SAMPLES as DEMO_FIXTURES, KEYWORD_SAMPLES_FULL, TEXT_OVERRIDES
 
-_DEMO_DELAY = 2.8
+DEMO_FIXTURES = {**DEMO_FIXTURES, **KEYWORD_SAMPLES_FULL}
+
+_DEMO_DELAYS = {
+    "두쫀쿠": 5.0,
+    "치킨":   5.5,
+    "빙수":   6.0,
+    "버터떡": 4.5,
+}
 
 ask_bp = Blueprint("ask", __name__)
 
@@ -215,8 +222,10 @@ def ask():
     if not keyword:
         return jsonify({"error": "keyword 가 필요합니다."}), 400
 
+    _demo_start = time.time() if keyword in _DEMO_DELAYS else None
+
     if keyword in DEMO_FIXTURES:
-        time.sleep(_DEMO_DELAY)
+        time.sleep(_DEMO_DELAYS.get(keyword, 5.0))
         fixture = dict(DEMO_FIXTURES[keyword])
         fixture["fromCache"] = False
         return jsonify(fixture)
@@ -325,6 +334,17 @@ def ask():
         }
         if google_weeks_cross:
             resp["googleWeeks"] = google_weeks_cross
+
+        if keyword in TEXT_OVERRIDES:
+            ov = TEXT_OVERRIDES[keyword]
+            resp.update({k: v for k, v in ov.items() if k != "actionPlan"})
+            if "actionPlan" in ov:
+                resp["actionPlan"] = ov["actionPlan"]
+            if _demo_start is not None:
+                elapsed = time.time() - _demo_start
+                target  = _DEMO_DELAYS.get(keyword, 5.0)
+                if elapsed < target:
+                    time.sleep(target - elapsed)
 
         # ── 8. 파일 캐시 저장 (user_profile 없는 경우만) ───────────────────
         if not user_profile:

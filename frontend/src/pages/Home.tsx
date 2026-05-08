@@ -11,9 +11,7 @@ import RecommendedSection from '@/components/RecommendedSection'
 import { useAnalysis } from '@/store/analysis'
 
 const EXAMPLES = [
-  '우베', '흑임자라떼', '말차', '크로플', '마라탕',
-  '베이글', '도넛', '하이볼', '로제파스타', '마라샹궈',
-  '치킨', '떡볶이', '파스타', '타르트', '크룽지',
+  '흑임자라떼', '말차', '크로플', '마라탕', '하이볼', '로제파스타', '크룽지',
 ]
 
 
@@ -60,7 +58,7 @@ export default function Home() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.05 }}
-          className="inline-flex items-center gap-2 text-[11px] sm:text-xs text-muted-foreground border border-border bg-background/80 backdrop-blur rounded-full px-3 py-1.5 mb-8"
+          className="inline-flex items-center gap-2 text-[13px] sm:text-xs text-muted-foreground border border-border bg-background/80 backdrop-blur rounded-full px-3 py-1.5 mb-8"
         >
           <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-stop)]" />
           트렌드 메뉴 따라 들였다가 재고만 남긴 외식업 사장님들을 위해
@@ -99,6 +97,10 @@ export default function Home() {
               value={lastKeyword}
               onChange={(e) => setLastKeyword(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && go()}
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck={false}
               className="flex-1 h-10 text-sm border-0 shadow-none focus-visible:ring-0 bg-transparent"
               autoFocus
             />
@@ -122,7 +124,7 @@ export default function Home() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, delay: 0.2 + i * 0.04 }}
                 whileHover={{ y: -2 }}
-                className="text-[11px] px-3 py-1.5 rounded-full bg-card border border-border text-muted-foreground hover:border-foreground hover:text-foreground transition-colors"
+                className="text-[13px] px-3 py-1.5 rounded-full bg-card border border-border text-muted-foreground hover:border-foreground hover:text-foreground transition-colors"
               >
                 {kw}
               </motion.button>
@@ -135,7 +137,7 @@ export default function Home() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 0.5, y: [0, 6, 0] }}
           transition={{ delay: 0.8, duration: 2, repeat: Infinity }}
-          className="absolute bottom-6 left-1/2 -translate-x-1/2 text-[10px] text-muted-foreground"
+          className="absolute bottom-6 left-1/2 -translate-x-1/2 text-xs text-muted-foreground"
         >
           <span className="inline-flex items-center gap-1"><ChevronDown className="w-3 h-3" /> 더 알아보기</span>
         </motion.div>

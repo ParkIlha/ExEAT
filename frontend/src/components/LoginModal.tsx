@@ -158,7 +158,7 @@ export default function LoginModal({ open, onClose, initialMode = 'login' }: Pro
 
         <div className="flex items-center gap-3 mb-4">
           <div className="h-px flex-1 bg-border" />
-          <span className="text-[10px] text-muted-foreground">또는 이메일</span>
+          <span className="text-xs text-muted-foreground">또는 이메일</span>
           <div className="h-px flex-1 bg-border" />
         </div>
 
@@ -179,7 +179,7 @@ export default function LoginModal({ open, onClose, initialMode = 'login' }: Pro
 
         <div className="flex flex-col gap-3 mb-4">
           <div>
-            <label className="text-[11px] text-muted-foreground">이메일</label>
+            <label className="text-[13px] text-muted-foreground">이메일</label>
             <Input
               type="email"
               autoComplete="email"
@@ -190,7 +190,7 @@ export default function LoginModal({ open, onClose, initialMode = 'login' }: Pro
             />
           </div>
           <div>
-            <label className="text-[11px] text-muted-foreground">비밀번호 (6자 이상)</label>
+            <label className="text-[13px] text-muted-foreground">비밀번호 (6자 이상)</label>
             <Input
               type="password"
               autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
@@ -211,7 +211,7 @@ export default function LoginModal({ open, onClose, initialMode = 'login' }: Pro
           {loading ? '처리 중…' : mode === 'login' ? '로그인' : '가입 후 로그인'}
         </Button>
 
-        <p className="text-[10px] text-muted-foreground mt-4 leading-relaxed">
+        <p className="text-xs text-muted-foreground mt-4 leading-relaxed">
           로그인 시 분석한 메뉴 이력이 서버에 저장됩니다. 향후 유료 플랜·일일 한도 연동 시 계정 기준으로 적용할 수 있습니다.
         </p>
       </motion.div>

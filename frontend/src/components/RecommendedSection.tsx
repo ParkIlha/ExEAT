@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { CheckCircle2, Clock, Sparkles } from 'lucide-react'
+import { CheckCircle2, Clock, Sparkles, Snowflake } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
 
@@ -83,7 +83,7 @@ export default function RecommendedSection() {
         <div>
           <div className="flex items-center gap-1.5 mb-0.5">
             <Sparkles className="w-3.5 h-3.5 text-[var(--color-go)]" strokeWidth={2} />
-            <span className="text-[11px] font-medium uppercase tracking-widest text-muted-foreground">
+            <span className="text-[13px] font-medium uppercase tracking-widest text-muted-foreground">
               알고리즘 추천
             </span>
           </div>
@@ -91,7 +91,7 @@ export default function RecommendedSection() {
             지금 진입하기 좋은 메뉴
           </h2>
         </div>
-        <span className="text-[10px] text-muted-foreground">
+        <span className="text-xs text-muted-foreground">
           {ready ? 'ExEAT 알고리즘 검증 완료' : '분석 중…'}
         </span>
       </div>
@@ -136,19 +136,24 @@ export default function RecommendedSection() {
                   <div className="flex items-center gap-2 mb-0.5">
                     <span className="font-semibold text-sm">{item.keyword}</span>
                     {item.isSeasonal && (
-                      <Badge variant="outline" className="text-[9px] px-1.5 py-0 text-[var(--color-wait)] border-[var(--color-wait)]">
-                        계절
+                      <Badge
+                        variant="outline"
+                        className="text-xs px-1.5 py-0 inline-flex items-center gap-0.5"
+                        style={{ color: '#0ea5e9', borderColor: '#0ea5e9', backgroundColor: '#0ea5e915' }}
+                      >
+                        <Snowflake className="w-2.5 h-2.5" strokeWidth={2.5} />
+                        {item.seasonPhase === 'peak' ? '시즌 피크' : item.seasonPhase === 'entering' ? '시즌 진입' : '계절'}
                       </Badge>
                     )}
                   </div>
-                  <span className="text-[11px] text-muted-foreground">
+                  <span className="text-[13px] text-muted-foreground">
                     {item.nature === 'TREND' ? '트렌드' : '스테디'} · {cycleLabel}
                   </span>
                 </div>
 
                 {/* 위험도 */}
                 <div className="text-right shrink-0">
-                  <div className="text-[10px] text-muted-foreground mb-0.5">위험도</div>
+                  <div className="text-xs text-muted-foreground mb-0.5">위험도</div>
                   <span className="font-mono text-xs">{item.riskScore}</span>
                 </div>
 

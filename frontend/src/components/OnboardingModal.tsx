@@ -88,7 +88,7 @@ export default function OnboardingModal({ onDone }: Props) {
                     >
                       <bt.Icon className="w-5 h-5 mb-1.5" strokeWidth={1.6} />
                       <span className="text-xs font-semibold block">{bt.label}</span>
-                      <span className="text-[10px] text-muted-foreground">{bt.desc}</span>
+                      <span className="text-xs text-muted-foreground">{bt.desc}</span>
                     </button>
                   )
                 })}

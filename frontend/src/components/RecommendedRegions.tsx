@@ -51,7 +51,7 @@ export default function RecommendedRegions({ stage }: Props) {
   return (
     <div className="flex flex-col gap-3">
       {/* 단계별 컨텍스트 */}
-      <p className="text-[11px] text-muted-foreground">{STAGE_CONTEXT[stage]}</p>
+      <p className="text-[13px] text-muted-foreground">{STAGE_CONTEXT[stage]}</p>
 
       {loading && (
         <div className="flex gap-2 flex-wrap">
@@ -74,7 +74,7 @@ export default function RecommendedRegions({ stage }: Props) {
                 className="flex items-center gap-3"
               >
                 {/* 순위 */}
-                <span className="text-[11px] font-mono text-muted-foreground w-4 shrink-0">
+                <span className="text-[13px] font-mono text-muted-foreground w-4 shrink-0">
                   {i + 1}
                 </span>
 
@@ -82,7 +82,7 @@ export default function RecommendedRegions({ stage }: Props) {
                 <div className="flex items-center gap-1.5 flex-1 min-w-0">
                   <span className="font-medium text-sm truncate">{r.region}</span>
                   <span
-                    className="text-[10px] font-medium px-1.5 py-0.5 rounded-full shrink-0 inline-flex items-center gap-1"
+                    className="text-xs font-medium px-1.5 py-0.5 rounded-full shrink-0 inline-flex items-center gap-1"
                     style={{ color: cfg.color, backgroundColor: cfg.bg }}
                   >
                     <cfg.Icon className="w-2.5 h-2.5" strokeWidth={3} />
@@ -101,7 +101,7 @@ export default function RecommendedRegions({ stage }: Props) {
                       style={{ backgroundColor: cfg.color }}
                     />
                   </div>
-                  <span className="text-[10px] font-mono text-muted-foreground w-8 text-right">
+                  <span className="text-xs font-mono text-muted-foreground w-8 text-right">
                     {r.score}
                   </span>
                 </div>
@@ -112,7 +112,7 @@ export default function RecommendedRegions({ stage }: Props) {
       )}
 
       {/* 인구 정보 출처 */}
-      <p className="text-[10px] text-muted-foreground/60 mt-1">
+      <p className="text-xs text-muted-foreground/60 mt-1">
         행정안전부 주민등록 인구통계 기반 · 연령 분포 + 유동인구 합산 점수
       </p>
     </div>
