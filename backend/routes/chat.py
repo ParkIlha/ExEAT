@@ -77,18 +77,32 @@ def chat():
         client = genai.Client(api_key=gemini_key)
         prompt = _build_chat_prompt(keyword, context, question)
 
-        response = client.models.generate_content(
-            model="models/gemini-3.0-flash",
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                system_instruction=_CHAT_SYSTEM,
-                temperature=0.7,
-                max_output_tokens=1500,
-            ),
-        )
-        answer = (response.text or "").strip()
+        _CHAT_MODELS = [
+            "models/gemini-3.0-flash",
+            "models/gemini-2.5-flash",
+            "gemini-2.5-flash",
+        ]
+        answer = ""
+        for model_name in _CHAT_MODELS:
+            try:
+                response = client.models.generate_content(
+                    model=model_name,
+                    contents=prompt,
+                    config=types.GenerateContentConfig(
+                        system_instruction=_CHAT_SYSTEM,
+                        temperature=0.7,
+                        max_output_tokens=1500,
+                    ),
+                )
+                answer = (response.text or "").strip()
+                if answer:
+                    break
+            except Exception as model_err:
+                print(f"[chat] {model_name} 실패: {model_err}")
+                continue
+
         if not answer:
-            raise ValueError("빈 응답")
+            raise ValueError("모든 모델에서 빈 응답")
 
         return jsonify({"answer": answer})
 
