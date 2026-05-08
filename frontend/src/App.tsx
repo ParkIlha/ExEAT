@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import TrendChart from '@/components/TrendChart'
+import CaseLibrary from '@/components/CaseLibrary'
 
 // ─── types ────────────────────────────────────────────────────────────────────
 
@@ -223,6 +224,18 @@ export default function App() {
             )}
           </CardContent>
         </Card>
+
+        {/* F7 — CaseLibrary */}
+        {trend && (
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base font-semibold">유사 패턴 과거 사례</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <CaseLibrary pattern={trend.stage === 'declining' || trend.stage === 'peak' ? 'sudden_rise_fall' : null} />
+            </CardContent>
+          </Card>
+        )}
 
         {/* F3 — TrendChart */}
         <Card>

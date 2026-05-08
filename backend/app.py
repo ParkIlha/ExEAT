@@ -17,6 +17,7 @@ load_dotenv()
 from routes.health import health_bp
 from routes.trend import trend_bp
 from routes.ask import ask_bp
+from routes.cases import cases_bp
 
 
 def create_app():
@@ -35,6 +36,7 @@ def create_app():
     app.register_blueprint(health_bp, url_prefix="/api")
     app.register_blueprint(trend_bp, url_prefix="/api")
     app.register_blueprint(ask_bp, url_prefix="/api")
+    app.register_blueprint(cases_bp, url_prefix="/api")
 
     return app
 
