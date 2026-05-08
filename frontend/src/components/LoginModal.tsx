@@ -18,6 +18,7 @@ export default function LoginModal({ open, onClose, initialMode = 'login' }: Pro
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [googleReady, setGoogleReady] = useState(false)
 
   if (!open) return null
 
@@ -26,6 +27,76 @@ export default function LoginModal({ open, onClose, initialMode = 'login' }: Pro
     setError('')
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
+
+  useEffect(() => {
+    if (!open) return
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined
+    if (!clientId) {
+      setGoogleReady(false)
+      return
+    }
+
+    const id = 'google-identity'
+    if (!document.getElementById(id)) {
+      const s = document.createElement('script')
+      s.id = id
+      s.src = 'https://accounts.google.com/gsi/client'
+      s.async = true
+      s.defer = true
+      s.onload = () => setGoogleReady(true)
+      s.onerror = () => setGoogleReady(false)
+      document.body.appendChild(s)
+    } else {
+      setGoogleReady(true)
+    }
+  }, [open])
+
+  async function googleSignIn() {
+    setError('')
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined
+    const g = (window as any).google
+    if (!clientId || !g?.accounts?.id) {
+      setError('구글 로그인 설정이 필요합니다.')
+      return
+    }
+
+    setLoading(true)
+    try {
+      const credential: string = await new Promise((resolve, reject) => {
+        try {
+          g.accounts.id.initialize({
+            client_id: clientId,
+            callback: (resp: { credential?: string }) => {
+              if (resp?.credential) resolve(resp.credential)
+              else reject(new Error('no credential'))
+            },
+          })
+          g.accounts.id.prompt()
+        } catch (e) {
+          reject(e)
+        }
+      })
+
+      const r = await fetch('/api/auth/google', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ credential }),
+      })
+      const j = (await r.json()) as { token?: string; user?: { email?: string }; error?: string }
+      if (!r.ok) {
+        setError(j.error ?? '구글 로그인에 실패했습니다.')
+        return
+      }
+      if (j.token && j.user?.email) {
+        setSession(j.token, j.user.email)
+        onClose()
+      }
+    } catch {
+      setError('구글 로그인에 실패했습니다.')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   async function submit() {
     setError('')
@@ -75,22 +146,14 @@ export default function LoginModal({ open, onClose, initialMode = 'login' }: Pro
           </button>
         </div>
 
-        <div className="grid grid-cols-2 gap-2 mb-4">
-          <Button
-            variant="secondary"
-            className="w-full justify-center"
-            onClick={() => { window.location.href = `/api/auth/kakao/start?next=${encodeURIComponent(window.location.origin + '/auth/callback')}` }}
-          >
-            카카오로 계속
-          </Button>
-          <Button
-            variant="secondary"
-            className="w-full justify-center"
-            onClick={() => { window.location.href = `/api/auth/naver/start?next=${encodeURIComponent(window.location.origin + '/auth/callback')}` }}
-          >
-            네이버로 계속
-          </Button>
-        </div>
+        <Button
+          variant="secondary"
+          className="w-full justify-center mb-4"
+          disabled={loading || !googleReady}
+          onClick={googleSignIn}
+        >
+          구글로 계속
+        </Button>
 
         <div className="flex items-center gap-3 mb-4">
           <div className="h-px flex-1 bg-border" />
